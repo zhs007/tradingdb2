@@ -1,0 +1,26 @@
+syntax = "proto3";
+package tradingdb2pb;
+option go_package = "github.com/zhs007/tradingdb2/pb";
+
+// Candle - candle
+message Candle {
+    int64 ts = 1;
+    int64 open = 2;
+    int64 close = 3;
+    int64 high = 4;
+    int64 low = 5;
+    int64 volume = 6;
+    int64 openInterest = 7;
+}
+
+// ReplyUpdCandle - reply UpdCandle
+message ReplyUpdCandle{
+    string error = 1;
+    int32 lengthOK = 2;
+}
+
+// TradingDB2Service - TradingDB2 service
+service TradingDB2Service {
+	// updCandle - update candle
+	rpc updCandle(Candle) returns (ReplyUpdCandle) {}
+}
