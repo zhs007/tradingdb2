@@ -85,7 +85,7 @@ func Test_MockLogger(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockTimeI(ctrl)
+	m := NewMockITime(ctrl)
 	m.EXPECT().Now().Return(time.Unix(1597647832, 0))
 	m.EXPECT().Now().Return(time.Unix(1597648787, 0))
 	m.EXPECT().Now().Return(time.Unix(1597647832, 0))
