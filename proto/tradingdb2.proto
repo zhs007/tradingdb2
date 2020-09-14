@@ -13,6 +13,14 @@ message Candle {
     int64 openInterest = 7;
 }
 
+// Candles - candles
+message Candles {
+    string market = 1;
+    string symbol = 2;
+    string tag = 3;
+    repeated Candle candles = 4;
+}
+
 // ReplyUpdCandle - reply UpdCandle
 message ReplyUpdCandle{
     string error = 1;
