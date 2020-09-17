@@ -1,4 +1,4 @@
-package tradingdb2serv
+package tradingdb2grpc
 
 import (
 	"context"
@@ -71,5 +71,29 @@ func (serv *Serv) Stop() {
 
 // UpdCandles - update candles
 func (serv *Serv) UpdCandles(ctx context.Context, req *tradingdb2pb.RequestUpdCandles) (*tradingdb2pb.ReplyUpdCandles, error) {
-	return nil, nil
+	if tradingdb2utils.IndexOfStringSlice(serv.cfg.Tokens, req.Token, 0) < 0 {
+		tradingdb2utils.Error("Serv.UpdCandles:checkToken",
+			zap.String("token", req.Token),
+			zap.Strings("tokens", serv.cfg.Tokens),
+			zap.Error(tradingdb2.ErrInvalidToken))
+
+		return &tradingdb2pb.ReplyUpdCandles{
+			Error: tradingdb2.ErrInvalidToken.Error(),
+		}, nil
+	}
+
+	err := serv.db.UpdCandles(ctx, req.Candles)
+	if err != nil {
+		tradingdb2utils.Error("Serv.UpdCandles:DB.UpdCandles",
+			tradingdb2utils.JSON("caldles", req.Candles),
+			zap.Error(err))
+
+		return &tradingdb2pb.ReplyUpdCandles{
+			Error: err.Error(),
+		}, nil
+	}
+
+	return &tradingdb2pb.ReplyUpdCandles{
+		LengthOK: int32(len(req.Candles.Candles)),
+	}, nil
 }

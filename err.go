@@ -9,4 +9,7 @@ var (
 	ErrInvalidSymbol = errors.New("invalid symbol")
 	// ErrInvalidTag - invalid tag
 	ErrInvalidTag = errors.New("invalid tag")
+
+	// ErrInvalidToken - invalid token
+	ErrInvalidToken = errors.New("invalid token")
 )

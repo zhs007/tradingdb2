@@ -14,5 +14,7 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+grpc/tradingdb2
 unittestdata/tradingdb2
 utils/*.log
+cfg/config.yaml
