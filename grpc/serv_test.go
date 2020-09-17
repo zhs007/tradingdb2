@@ -36,9 +36,12 @@ func Test_Serv(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
-	assert.Equal(t, ret.LengthOK, int32(0))
-	assert.Equal(t, ret.Error, "invalid token")
+	assert.Error(t, err)
+	assert.Nil(t, ret)
+
+	replygetcandles, err := client0.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
+	assert.Error(t, err)
+	assert.Nil(t, replygetcandles)
 
 	client1, err := NewClient("127.0.0.1:5002", "wzDkh9h2fhfUVuS9jZ8uVbhV3vC5AWX3")
 	assert.NoError(t, err)
@@ -55,7 +58,6 @@ func Test_Serv(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(1))
-	assert.Equal(t, ret.Error, "")
 
 	candles, err := serv.db.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
 	assert.NoError(t, err)
@@ -64,6 +66,15 @@ func Test_Serv(t *testing.T) {
 	assert.Equal(t, candles.Tag, "20200101")
 	assert.Equal(t, len(candles.Candles), 1)
 	assert.Equal(t, candles.Candles[0].Open, int64(100))
+
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
+	assert.NoError(t, err)
+	assert.NotNil(t, replygetcandles)
+	assert.Equal(t, replygetcandles.Candles.Market, "bitmex")
+	assert.Equal(t, replygetcandles.Candles.Symbol, "BTX")
+	assert.Equal(t, replygetcandles.Candles.Tag, "20200101")
+	assert.Equal(t, len(replygetcandles.Candles.Candles), 1)
+	assert.Equal(t, replygetcandles.Candles.Candles[0].Open, int64(100))
 
 	serv.Stop()
 

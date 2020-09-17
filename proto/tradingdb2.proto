@@ -29,12 +29,26 @@ message RequestUpdCandles {
 
 // ReplyUpdCandles - reply UpdCandles
 message ReplyUpdCandles{
-    string error = 1;
-    int32 lengthOK = 2;
+    int32 lengthOK = 1;
+}
+
+// RequestGetCandles - request GetCandles
+message RequestGetCandles {
+    string token = 1;
+    string market = 2;
+    string symbol = 3;
+    string tag = 4;
+}
+
+// ReplyGetCandles - reply GetCandles
+message ReplyGetCandles{
+    Candles candles = 1;
 }
 
 // TradingDB2Service - TradingDB2 service
 service TradingDB2Service {
 	// updCandles - update candles
-	rpc updCandles(RequestUpdCandles) returns (ReplyUpdCandles) {}
+    rpc updCandles(RequestUpdCandles) returns (ReplyUpdCandles) {}
+	// getCandles - get candles
+	rpc getCandles(RequestGetCandles) returns (ReplyGetCandles) {}    
 }

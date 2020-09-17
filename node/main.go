@@ -29,5 +29,9 @@ func main() {
 		return
 	}
 
+	tradingdb2utils.Error("Start TradingDB2 ...",
+		zap.String("version", tradingdb2ver.Version),
+		zap.String("bind address", cfg.BindAddr))
+
 	serv.Start(context.Background())
 }

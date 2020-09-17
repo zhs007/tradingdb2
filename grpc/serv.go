@@ -77,9 +77,7 @@ func (serv *Serv) UpdCandles(ctx context.Context, req *tradingdb2pb.RequestUpdCa
 			zap.Strings("tokens", serv.cfg.Tokens),
 			zap.Error(tradingdb2.ErrInvalidToken))
 
-		return &tradingdb2pb.ReplyUpdCandles{
-			Error: tradingdb2.ErrInvalidToken.Error(),
-		}, nil
+		return nil, tradingdb2.ErrInvalidToken
 	}
 
 	err := serv.db.UpdCandles(ctx, req.Candles)
@@ -88,12 +86,35 @@ func (serv *Serv) UpdCandles(ctx context.Context, req *tradingdb2pb.RequestUpdCa
 			tradingdb2utils.JSON("caldles", req.Candles),
 			zap.Error(err))
 
-		return &tradingdb2pb.ReplyUpdCandles{
-			Error: err.Error(),
-		}, nil
+		return nil, err
 	}
 
 	return &tradingdb2pb.ReplyUpdCandles{
 		LengthOK: int32(len(req.Candles.Candles)),
+	}, nil
+}
+
+// GetCandles - get candles
+func (serv *Serv) GetCandles(ctx context.Context, req *tradingdb2pb.RequestGetCandles) (*tradingdb2pb.ReplyGetCandles, error) {
+	if tradingdb2utils.IndexOfStringSlice(serv.cfg.Tokens, req.Token, 0) < 0 {
+		tradingdb2utils.Error("Serv.UpdCandles:checkToken",
+			zap.String("token", req.Token),
+			zap.Strings("tokens", serv.cfg.Tokens),
+			zap.Error(tradingdb2.ErrInvalidToken))
+
+		return nil, tradingdb2.ErrInvalidToken
+	}
+
+	candles, err := serv.db.GetCandles(ctx, req.Market, req.Symbol, req.Tag)
+	if err != nil {
+		tradingdb2utils.Error("Serv.UpdCandles:DB.UpdCandles",
+			tradingdb2utils.JSON("params", req),
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	return &tradingdb2pb.ReplyGetCandles{
+		Candles: candles,
 	}, nil
 }
