@@ -11,6 +11,8 @@ func Test_LoadConfig(t *testing.T) {
 	cfg, err := LoadConfig("./cfg/config.yaml.default")
 	assert.NoError(t, err)
 
+	assert.Equal(t, cfg.DBPath, "./data")
+	assert.Equal(t, cfg.DBEngine, "leveldb")
 	assert.Equal(t, cfg.BindAddr, "0.0.0.0:5002")
 	assert.Equal(t, cfg.LogLevel, "debug")
 	assert.Equal(t, len(cfg.Tokens), 1)

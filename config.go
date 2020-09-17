@@ -8,6 +8,8 @@ import (
 
 // Config -
 type Config struct {
+	DBPath   string   `yaml:"dbpath"`
+	DBEngine string   `yaml:"dbengine"`
 	BindAddr string   `yaml:"bindaddr"`
 	LogLevel string   `yaml:"loglevel"`
 	Tokens   []string `yaml:"tokens"`

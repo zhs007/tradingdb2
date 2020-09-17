@@ -1,5 +1,5 @@
 # dbpath - db path
-dbpath: ./data
+dbpath: ./unittestdata
 # dbengine - db engine
 dbengine: leveldb
 # bindaddr - grpc server bind address

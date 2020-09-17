@@ -46,6 +46,18 @@ func NewDB(dbpath string, httpAddr string, engine string) (*DB, error) {
 
 // UpdCandles - update candles
 func (db *DB) UpdCandles(ctx context.Context, candles *tradingdb2pb.Candles) error {
+	if candles.Market == "" {
+		return ErrInvalidMarket
+	}
+
+	if candles.Symbol == "" {
+		return ErrInvalidSymbol
+	}
+
+	if candles.Tag == "" {
+		return ErrInvalidTag
+	}
+
 	buf, err := proto.Marshal(candles)
 	if err != nil {
 		return err
@@ -62,6 +74,18 @@ func (db *DB) UpdCandles(ctx context.Context, candles *tradingdb2pb.Candles) err
 // GetCandles - get candles
 func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tag string) (
 	*tradingdb2pb.Candles, error) {
+
+	if market == "" {
+		return nil, ErrInvalidMarket
+	}
+
+	if symbol == "" {
+		return nil, ErrInvalidSymbol
+	}
+
+	if tag == "" {
+		return nil, ErrInvalidTag
+	}
 
 	buf, err := db.AnkaDB.Get(ctx, dbname, makeCandlesDBKey(market, symbol, tag))
 	if err != nil {
