@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	tradingdb2 "github.com/zhs007/tradingdb2"
 	tradingdb2pb "github.com/zhs007/tradingdb2/pb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	tradingdb2ver "github.com/zhs007/tradingdb2/ver"
@@ -15,15 +16,19 @@ import (
 type Serv struct {
 	lis      net.Listener
 	grpcServ *grpc.Server
+	db       *tradingdb2.DB
+	cfg      *tradingdb2.Config
 }
 
 // NewServ -
-func NewServ(cfgfn string) (*Serv, error) {
-	cfg, err := LoadConfig(cfgfn)
+func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
+
+	db, err := tradingdb2.NewDB(cfg.DBPath, "", cfg.DBEngine)
 	if err != nil {
-		tradingdb2utils.Error("tradingdb2serv.NewServ",
-			zap.String("cfgfn", cfgfn),
+		tradingdb2utils.Error("NewServ.NewDB",
 			zap.Error(err))
+
+		return nil, err
 	}
 
 	lis, err := net.Listen("tcp", cfg.BindAddr)
@@ -39,6 +44,8 @@ func NewServ(cfgfn string) (*Serv, error) {
 	serv := &Serv{
 		lis:      lis,
 		grpcServ: grpcServ,
+		db:       db,
+		cfg:      cfg,
 	}
 
 	tradingdb2pb.RegisterTradingDB2ServiceServer(grpcServ, serv)
