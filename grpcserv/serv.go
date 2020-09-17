@@ -62,7 +62,7 @@ func (serv *Serv) Stop() {
 	return
 }
 
-// UpdCandle - update candle
-func (serv *Serv) UpdCandle(context.Context, *tradingdb2pb.Candle) (*tradingdb2pb.ReplyUpdCandle, error) {
+// UpdCandles - update candles
+func (serv *Serv) UpdCandles(ctx context.Context, req *tradingdb2pb.RequestUpdCandles) (*tradingdb2pb.ReplyUpdCandles, error) {
 	return nil, nil
 }

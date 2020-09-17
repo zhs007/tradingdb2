@@ -1,0 +1,7 @@
+# bindaddr - grpc server bind address
+bindaddr: 0.0.0.0:5002
+# loglevel - log level
+loglevel: debug
+# tokens - tokens
+tokens:
+  - wzDkh9h2fhfUVuS9jZ8uVbhV3vC5AWX3
