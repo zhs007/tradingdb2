@@ -10,6 +10,9 @@ var (
 	// ErrInvalidTag - invalid tag
 	ErrInvalidTag = errors.New("invalid tag")
 
+	// ErrInvalidUpdCandlesParams - invalid UpdCandles Params
+	ErrInvalidUpdCandlesParams = errors.New("invalid UpdCandles Params")
+
 	// ErrInvalidToken - invalid token
 	ErrInvalidToken = errors.New("invalid token")
 )

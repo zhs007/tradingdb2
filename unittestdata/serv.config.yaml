@@ -1,3 +1,5 @@
+# batchcandlenums - batch candle nums
+batchcandlenums: 30
 # dbpath - db path
 dbpath: ./
 # dbengine - db engine

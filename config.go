@@ -8,11 +8,12 @@ import (
 
 // Config -
 type Config struct {
-	DBPath   string   `yaml:"dbpath"`
-	DBEngine string   `yaml:"dbengine"`
-	BindAddr string   `yaml:"bindaddr"`
-	LogLevel string   `yaml:"loglevel"`
-	Tokens   []string `yaml:"tokens"`
+	BatchCandleNums int      `yaml:"batchcandlenums"`
+	DBPath          string   `yaml:"dbpath"`
+	DBEngine        string   `yaml:"dbengine"`
+	BindAddr        string   `yaml:"bindaddr"`
+	LogLevel        string   `yaml:"loglevel"`
+	Tokens          []string `yaml:"tokens"`
 }
 
 // LoadConfig - load config
@@ -26,6 +27,10 @@ func LoadConfig(fn string) (*Config, error) {
 	err = yaml.Unmarshal(data, cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if cfg.BatchCandleNums <= 0 {
+		cfg.BatchCandleNums = BatchCandleNums
 	}
 
 	return cfg, nil

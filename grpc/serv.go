@@ -2,6 +2,7 @@ package tradingdb2grpc
 
 import (
 	"context"
+	"io"
 	"net"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
@@ -70,51 +71,154 @@ func (serv *Serv) Stop() {
 }
 
 // UpdCandles - update candles
-func (serv *Serv) UpdCandles(ctx context.Context, req *tradingdb2pb.RequestUpdCandles) (*tradingdb2pb.ReplyUpdCandles, error) {
-	if tradingdb2utils.IndexOfStringSlice(serv.cfg.Tokens, req.Token, 0) < 0 {
-		tradingdb2utils.Error("Serv.UpdCandles:checkToken",
-			zap.String("token", req.Token),
-			zap.Strings("tokens", serv.cfg.Tokens),
-			zap.Error(tradingdb2.ErrInvalidToken))
+func (serv *Serv) UpdCandles(stream tradingdb2pb.TradingDB2Service_UpdCandlesServer) error {
+	candles := &tradingdb2pb.Candles{}
+	times := 0
+	// token := ""
 
-		return nil, tradingdb2.ErrInvalidToken
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				err := serv.db.UpdCandles(stream.Context(), candles)
+				if err != nil {
+					tradingdb2utils.Error("Serv.UpdCandles:DB.UpdCandles",
+						tradingdb2utils.JSON("caldles", req.Candles),
+						zap.Error(err))
+
+					return err
+				}
+
+				return stream.SendAndClose(&tradingdb2pb.ReplyUpdCandles{
+					LengthOK: int32(len(candles.Candles)),
+				})
+			}
+
+			tradingdb2utils.Error("Serv.UpdCandles:Recv",
+				zap.Int("length", len(candles.Candles)),
+				zap.Int("times", times),
+				zap.Error(err))
+
+			return err
+		}
+
+		if times == 0 {
+			if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.cfg.Tokens, req.Token, 0) < 0 {
+				tradingdb2utils.Error("Serv.UpdCandles:Token",
+					zap.Int("length", len(candles.Candles)),
+					zap.Int("times", times),
+					zap.String("token", req.Token),
+					zap.Error(tradingdb2.ErrInvalidToken))
+
+				return tradingdb2.ErrInvalidToken
+			}
+
+			if req.Candles.Market == "" ||
+				req.Candles.Symbol == "" ||
+				req.Candles.Tag == "" {
+
+				tradingdb2utils.Error("Serv.UpdCandles:Market|Symbol|Tag",
+					zap.Int("length", len(candles.Candles)),
+					zap.Int("times", times),
+					zap.String("market", req.Candles.Market),
+					zap.String("symbol", req.Candles.Symbol),
+					zap.String("tag", req.Candles.Tag),
+					zap.Error(tradingdb2.ErrInvalidUpdCandlesParams))
+
+				return tradingdb2.ErrInvalidUpdCandlesParams
+			}
+
+			// token = req.Token
+
+			candles.Market = req.Candles.Market
+			candles.Symbol = req.Candles.Symbol
+			candles.Tag = req.Candles.Tag
+		}
+		// } else {
+		// 	if token != req.Token {
+		// 		tradingdb2utils.Error("Serv.UpdCandles:Token",
+		// 			zap.Int("length", len(candles.Candles)),
+		// 			zap.Int("times", times),
+		// 			zap.String("first token", token),
+		// 			zap.String("token", req.Token),
+		// 			zap.Error(tradingdb2.ErrInvalidToken))
+
+		// 		return tradingdb2.ErrInvalidToken
+		// 	}
+
+		// 	if candles.Market != req.Candles.Market {
+		// 		tradingdb2utils.Error("Serv.UpdCandles:Market",
+		// 			zap.Int("length", len(candles.Candles)),
+		// 			zap.Int("times", times),
+		// 			zap.String("first market", candles.Market),
+		// 			zap.String("market", req.Candles.Market),
+		// 			zap.Error(tradingdb2.ErrInvalidMarket))
+
+		// 		return tradingdb2.ErrInvalidMarket
+		// 	}
+
+		// 	if candles.Symbol != req.Candles.Symbol {
+		// 		tradingdb2utils.Error("Serv.UpdCandles:Symbol",
+		// 			zap.Int("length", len(candles.Candles)),
+		// 			zap.Int("times", times),
+		// 			zap.String("first symbol", candles.Symbol),
+		// 			zap.String("symbol", req.Candles.Symbol),
+		// 			zap.Error(tradingdb2.ErrInvalidSymbol))
+
+		// 		return tradingdb2.ErrInvalidSymbol
+		// 	}
+
+		// 	if candles.Tag != req.Candles.Tag {
+		// 		tradingdb2utils.Error("Serv.UpdCandles:Tag",
+		// 			zap.Int("length", len(candles.Candles)),
+		// 			zap.Int("times", times),
+		// 			zap.String("first tag", candles.Tag),
+		// 			zap.String("tag", req.Candles.Tag),
+		// 			zap.Error(tradingdb2.ErrInvalidTag))
+
+		// 		return tradingdb2.ErrInvalidTag
+		// 	}
+		// }
+
+		times++
+
+		tradingdb2.MergeCandles(candles, req.Candles)
 	}
-
-	err := serv.db.UpdCandles(ctx, req.Candles)
-	if err != nil {
-		tradingdb2utils.Error("Serv.UpdCandles:DB.UpdCandles",
-			tradingdb2utils.JSON("caldles", req.Candles),
-			zap.Error(err))
-
-		return nil, err
-	}
-
-	return &tradingdb2pb.ReplyUpdCandles{
-		LengthOK: int32(len(req.Candles.Candles)),
-	}, nil
 }
 
 // GetCandles - get candles
-func (serv *Serv) GetCandles(ctx context.Context, req *tradingdb2pb.RequestGetCandles) (*tradingdb2pb.ReplyGetCandles, error) {
-	if tradingdb2utils.IndexOfStringSlice(serv.cfg.Tokens, req.Token, 0) < 0 {
+func (serv *Serv) GetCandles(req *tradingdb2pb.RequestGetCandles, stream tradingdb2pb.TradingDB2Service_GetCandlesServer) error {
+	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.cfg.Tokens, req.Token, 0) < 0 {
 		tradingdb2utils.Error("Serv.UpdCandles:checkToken",
 			zap.String("token", req.Token),
 			zap.Strings("tokens", serv.cfg.Tokens),
 			zap.Error(tradingdb2.ErrInvalidToken))
 
-		return nil, tradingdb2.ErrInvalidToken
+		return tradingdb2.ErrInvalidToken
 	}
 
-	candles, err := serv.db.GetCandles(ctx, req.Market, req.Symbol, req.Tag)
+	candles, err := serv.db.GetCandles(stream.Context(), req.Market, req.Symbol, req.Tag)
 	if err != nil {
 		tradingdb2utils.Error("Serv.UpdCandles:DB.UpdCandles",
 			tradingdb2utils.JSON("params", req),
 			zap.Error(err))
 
-		return nil, err
+		return err
 	}
 
-	return &tradingdb2pb.ReplyGetCandles{
-		Candles: candles,
-	}, nil
+	// sentnums := 0
+
+	return tradingdb2.BatchCandles(candles, serv.cfg.BatchCandleNums, func(lst *tradingdb2pb.Candles) error {
+		cc := &tradingdb2pb.ReplyGetCandles{
+			Candles: lst,
+		}
+
+		// if sentnums == 0 {
+		// 	cc.Candles.Market = candles.Market
+		// 	cc.Candles.Symbol = candles.Symbol
+		// 	cc.Candles.Tag = candles.Tag
+		// }
+
+		return stream.Send(cc)
+	})
 }

@@ -48,7 +48,7 @@ message ReplyGetCandles{
 // TradingDB2Service - TradingDB2 service
 service TradingDB2Service {
 	// updCandles - update candles
-    rpc updCandles(RequestUpdCandles) returns (ReplyUpdCandles) {}
+    rpc updCandles(stream RequestUpdCandles) returns (ReplyUpdCandles) {}
 	// getCandles - get candles
-	rpc getCandles(RequestGetCandles) returns (ReplyGetCandles) {}    
+	rpc getCandles(RequestGetCandles) returns (stream ReplyGetCandles) {}    
 }
