@@ -11,6 +11,12 @@ message Candle {
     int64 low = 5;
     int64 volume = 6;
     int64 openInterest = 7;
+    int64 trades = 8;
+    double vwap = 9;
+    int64 lastSize = 10;
+    int64 turnover = 11;
+    double homeNotional = 12;
+    double foreignNotional = 13;
 }
 
 // Candles - candles
