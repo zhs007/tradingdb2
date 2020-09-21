@@ -18,3 +18,4 @@ grpc/tradingdb2
 unittestdata/tradingdb2
 utils/*.log
 cfg/config.yaml
+main

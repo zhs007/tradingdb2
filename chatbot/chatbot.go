@@ -42,16 +42,14 @@ func startServ(ctx context.Context, cfg *tradingdb2.Config, endchan chan int) (
 	return serv, nil
 }
 
-func startChatBot(ctx context.Context, chatbotcfg *chatbot.Config, serv *tradingdb2grpc.Serv, endchan chan int) error {
+func startChatBot(ctx context.Context, chatbotcfg *chatbot.Config, trdb2serv *tradingdb2grpc.Serv, endchan chan int) error {
 
-	RegisterCmdReqTask(servCharles)
-
-	chatbotbase.InitLogger(mgrPlugins.Cfg.Log.ZapLevel, true, mgrPlugins.Cfg.Log.Path)
+	chatbotbase.SetLogger(tradingdb2utils.GetLogger())
 
 	mgr, err := chatbotusermgr.NewUserMgr(chatbotcfg.DBPath,
 		"", chatbotcfg.DBEngine, nil)
 	if err != nil {
-		charlescorebase.Warn("startChatBot:NewUserMgr",
+		tradingdb2utils.Warn("startChatBot:NewUserMgr",
 			zap.Error(err))
 
 		return err
@@ -59,7 +57,7 @@ func startChatBot(ctx context.Context, chatbotcfg *chatbot.Config, serv *trading
 
 	serv, err := chatbot.NewChatBotServ(chatbotcfg, mgr, &ServiceCore{})
 	if err != nil {
-		charlescorebase.Warn("startChatBot:NewChatBotServ",
+		tradingdb2utils.Warn("startChatBot:NewChatBotServ",
 			zap.Error(err))
 
 		return err
@@ -78,7 +76,7 @@ func startChatBot(ctx context.Context, chatbotcfg *chatbot.Config, serv *trading
 	go func() {
 		serv.Start(context.Background())
 		if err != nil {
-			charlescorebase.Warn("startChatBot:Start",
+			tradingdb2utils.Warn("startChatBot:Start",
 				zap.Error(err))
 		}
 
@@ -127,8 +125,7 @@ func Start(ctx context.Context, cfgfn string, chatbotcfgfn string) error {
 		return err
 	}
 
-	err = startChatBot(context.Background(), servCharles.Mgr, chatbotcfg, servCharles,
-		servchan)
+	err = startChatBot(context.Background(), chatbotcfg, serv, servchan)
 	if err != nil {
 		tradingdb2utils.Warn("StartChatBot:startChatBot",
 			zap.Error(err))
