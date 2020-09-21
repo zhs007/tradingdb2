@@ -243,13 +243,22 @@ func GetLogger() *zap.Logger {
 	return logger
 }
 
+// SetLogger - set zap.Logger, return last zap.Logger
+func SetLogger(curLogger *zap.Logger) *zap.Logger {
+	ll := logger
+
+	logger = curLogger
+
+	return ll
+}
+
 // JSON - It's like zap.String(name, str)
 func JSON(name string, jobj interface{}) zap.Field {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	b, err := json.Marshal(jobj)
 	if err != nil {
-		Warn("sgc7utils.JSON",
+		Warn("tradingdb2utils.JSON",
 			zap.Error(err))
 
 		return zap.String(name, err.Error())
