@@ -1,0 +1,36 @@
+chatbotname:
+  description: chatbot name
+  other: 查尔斯
+help001:
+  description: help 001
+  other: 我是 {{.ChatBotName}}，很高兴认识你。
+help002:
+  description: help 002
+  other: 我可以帮你获取各种数据。
+start001:
+  description: start 001
+  other: 你好，{{.Name}}，我是 {{.ChatBotName}}，很高兴认识你。
+start002:
+  description: start 002
+  other: 我可以帮你获取各种数据。
+igetit:
+  description: in debug
+  other: 我知道了。
+yousaid:
+  description: in debug
+  other: 你说 “{{.TextChat}}”。
+igetfile:
+  description: in debug
+  other: 我收到了一个 {{.FileType}} 文件 ({{.FileName}})，文件大小是 {{.FileSize}}，文件Hash是 "{{.FileHash}}"。
+regtask001:  
+  description: regtask 001
+  other: 我知道了 ({{.TextChat}}).
+regtask002:  
+  description: regtask 002
+  other: 任务已经开始（{{.CmdLine}}）。  
+settimer001:  
+  description: settimer 001
+  other: 我知道了 ({{.TextChat}}).
+settimer002:  
+  description: settimer 002
+  other: 计时任务（{{.Task}}）。    

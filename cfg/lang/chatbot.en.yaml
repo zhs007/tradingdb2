@@ -1,0 +1,36 @@
+chatbotname:
+  description: chatbot name
+  other: Charles
+help001:
+  description: help 001
+  other: I am {{.ChatBotName}}, nice to meet you.
+help002:
+  description: help 002
+  other: I can collect some data for you.
+start001:
+  description: help 001
+  other: Hey, {{.Name}}, I am {{.ChatBotName}}, nice to meet you.
+start002:
+  description: help 002
+  other: I can collect some data for you.
+igetit:
+  description: in debug
+  other: I get it.
+yousaid:
+  description: in debug
+  other: You said "{{.TextChat}}".
+igetfile:
+  description: in debug
+  other: I get a {{.FileType}} file ({{.FileName}}), the file size is {{.FileSize}}, the file hash is "{{.FileHash}}".
+regtask001:  
+  description: regtask 001
+  other: I get it ({{.TextChat}}).
+regtask002:  
+  description: regtask 002
+  other: The task is starting ({{.CmdLine}}).
+settimer001:  
+  description: settimer 001
+  other: I get it ({{.TextChat}}).
+settimer002:  
+  description: settimer 002
+  other: The timer is staring ({{.Task}}).
