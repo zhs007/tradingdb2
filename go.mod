@@ -14,6 +14,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/zhs007/ankadb v0.3.33
+	github.com/zhs007/chatbot v0.6.2
 	go.uber.org/zap v1.16.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1 // indirect

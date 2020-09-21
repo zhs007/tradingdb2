@@ -13,6 +13,7 @@ type Config struct {
 	DBEngine        string   `yaml:"dbengine"`
 	BindAddr        string   `yaml:"bindaddr"`
 	LogLevel        string   `yaml:"loglevel"`
+	LogPath         string   `yaml:"logpath"`
 	Tokens          []string `yaml:"tokens"`
 }
 
@@ -27,6 +28,10 @@ func LoadConfig(fn string) (*Config, error) {
 	err = yaml.Unmarshal(data, cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if cfg.LogPath == "" {
+		cfg.LogPath = "./logs"
 	}
 
 	if cfg.BatchCandleNums <= 0 {
