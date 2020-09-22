@@ -12,16 +12,19 @@ RUN go mod download
 
 COPY . /src/tradingdb2
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tradingdb2 ./node \
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tradingdb2 ./chatbotnode \
     && mkdir /app \
     && mkdir /app/tradingdb2 \
     && mkdir /app/tradingdb2/cfg \
+    && mkdir /app/tradingdb2/config \
     && mkdir /app/tradingdb2/logs \
     && mkdir /app/tradingdb2/data \
     && cp ./tradingdb2 /app/tradingdb2/ \
     && cp ./VERSION /app/tradingdb2/ \
     && cp -r ./cfg /app/tradingdb2/ \
-    && cp ./cfg/config.yaml.default /app/tradingdb2/cfg/config.yaml
+    && cp -r ./config /app/tradingdb2/ \
+    && cp ./cfg/config.yaml.default /app/tradingdb2/cfg/config.yaml \
+    && cp ./cfg/chatbot.yaml.default /app/tradingdb2/cfg/chatbot.yaml
 
 FROM alpine
 RUN apk upgrade && apk add --no-cache ca-certificates

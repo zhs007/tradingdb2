@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "chatbot",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/chatbotnode/main.go",
+            "env": {},
+            "args": [],
+            "cwd": "${workspaceFolder}",
+        },
+        {
             "name": "Test",
             "type": "go",
             "request": "launch",

@@ -18,4 +18,6 @@ grpc/tradingdb2
 unittestdata/tradingdb2
 utils/*.log
 cfg/config.yaml
+cfg/chatbot.yaml
 main
+data
