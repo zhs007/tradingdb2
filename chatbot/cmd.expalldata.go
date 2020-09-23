@@ -44,7 +44,7 @@ func (cmd *cmdExpAllData) RunCommand(ctx context.Context, serv *chatbot.Serv, pa
 		return true, nil, err
 	}
 
-	fn := tradingdb2utils.AppendString("alldata.", time.Now().UTC().Format("2006-01-02_15:04:05"), "xlsx")
+	fn := tradingdb2utils.AppendString("alldata.", time.Now().UTC().Format("2006-01-02_15:04:05"), ".xlsx")
 	tradingdb2.ExpAllData(path.Join(cmd.serv.Cfg.DataPath, fn), root)
 
 	var lst []*chatbotpb.ChatMsg
