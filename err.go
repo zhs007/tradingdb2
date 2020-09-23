@@ -13,6 +13,9 @@ var (
 	// ErrInvalidUpdCandlesParams - invalid UpdCandles Params
 	ErrInvalidUpdCandlesParams = errors.New("invalid UpdCandles Params")
 
+	// ErrDuplicateChildNode - duplicate child node
+	ErrDuplicateChildNode = errors.New("duplicate child node")
+
 	// ErrInvalidToken - invalid token
 	ErrInvalidToken = errors.New("invalid token")
 )

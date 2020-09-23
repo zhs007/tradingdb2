@@ -19,6 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tradingdb2 ./chat
     && mkdir /app/tradingdb2/config \
     && mkdir /app/tradingdb2/logs \
     && mkdir /app/tradingdb2/data \
+    && mkdir /app/tradingdb2/output \
     && cp ./tradingdb2 /app/tradingdb2/ \
     && cp ./VERSION /app/tradingdb2/ \
     && cp -r ./cfg /app/tradingdb2/ \

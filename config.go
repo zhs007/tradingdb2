@@ -15,6 +15,8 @@ type Config struct {
 	LogLevel        string   `yaml:"loglevel"`
 	LogPath         string   `yaml:"logpath"`
 	Tokens          []string `yaml:"tokens"`
+	DataPath        string   `yaml:"datapath"`
+	DataURL         string   `yaml:"dataurl"`
 }
 
 // LoadConfig - load config
@@ -36,6 +38,14 @@ func LoadConfig(fn string) (*Config, error) {
 
 	if cfg.BatchCandleNums <= 0 {
 		cfg.BatchCandleNums = BatchCandleNums
+	}
+
+	if cfg.DataPath == "" {
+		cfg.DataPath = "./output"
+	}
+
+	if cfg.DataURL == "" {
+		cfg.DataURL = "http://127.0.0.1/"
 	}
 
 	return cfg, nil

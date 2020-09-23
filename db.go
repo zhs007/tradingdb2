@@ -2,6 +2,7 @@ package tradingdb2
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/golang/protobuf/proto"
 	ankadb "github.com/zhs007/ankadb"
@@ -10,9 +11,10 @@ import (
 )
 
 const dbname = "tradingdb2"
+const candlesKeyPrefix = "candles:"
 
 func makeCandlesDBKey(market string, symbol string, tag string) string {
-	return tradingdb2utils.AppendString(market, ":", symbol, ":", tag)
+	return tradingdb2utils.AppendString(candlesKeyPrefix, market, ":", symbol, ":", tag)
 }
 
 // DB - database
@@ -104,4 +106,30 @@ func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tag 
 	}
 
 	return res, nil
+}
+
+// GetAllData - get all data
+func (db *DB) GetAllData(ctx context.Context) (*TreeMapNode, error) {
+	root := NewTreeMapNode("root")
+
+	err := db.AnkaDB.ForEachWithPrefix(ctx, dbname, candlesKeyPrefix, func(key string, buf []byte) error {
+		candles := &tradingdb2pb.Candles{}
+
+		err := proto.Unmarshal(buf, candles)
+		if err != nil {
+			return err
+		}
+
+		market := root.GetChildEx(candles.Market)
+		symbol := market.GetChildEx(candles.Symbol)
+		tag := symbol.GetChildEx(candles.Tag)
+		tag.GetChildEx(strconv.Itoa(len(candles.Candles)))
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return root, nil
 }

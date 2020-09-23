@@ -54,7 +54,7 @@ func Test_Serv(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(100))
 
-	dbcandles, err := serv.db.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
+	dbcandles, err := serv.DB.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
 	assert.NoError(t, err)
 	assert.Equal(t, dbcandles.Market, "bitmex")
 	assert.Equal(t, dbcandles.Symbol, "BTX")
