@@ -1,6 +1,8 @@
 package tradingdb2
 
 import (
+	"sort"
+
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
 	excel "github.com/zhs007/adacore/excel"
 )
@@ -37,6 +39,18 @@ func genAllData(root *TreeMapNode) []alldata {
 			}
 		}
 	}
+
+	sort.Slice(lst, func(i, j int) bool {
+		if lst[i].market != lst[j].market {
+			return lst[i].market < lst[j].market
+		}
+
+		if lst[i].symbol != lst[j].symbol {
+			return lst[i].symbol < lst[j].symbol
+		}
+
+		return lst[i].tag < lst[j].tag
+	})
 
 	return lst
 }
