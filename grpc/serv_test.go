@@ -39,18 +39,18 @@ func Test_Serv(t *testing.T) {
 		})
 	}
 
-	ret, err := client0.UpdCandles(context.Background(), candles, 30)
+	ret, err := client0.UpdCandles(context.Background(), candles, 30, nil)
 	assert.Error(t, err)
 	assert.Nil(t, ret)
 
-	replygetcandles, err := client0.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
+	replygetcandles, err := client0.GetCandles(context.Background(), "bitmex", "BTX", "20200101", nil)
 	assert.Error(t, err)
 	assert.Nil(t, replygetcandles)
 
 	client1, err := NewClient("127.0.0.1:5002", "wzDkh9h2fhfUVuS9jZ8uVbhV3vC5AWX3")
 	assert.NoError(t, err)
 
-	ret, err = client1.UpdCandles(context.Background(), candles, 30)
+	ret, err = client1.UpdCandles(context.Background(), candles, 30, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(100))
 
@@ -65,7 +65,7 @@ func Test_Serv(t *testing.T) {
 		assert.Equal(t, dbcandles.Candles[i].Open, int64(100+i))
 	}
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200101", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")

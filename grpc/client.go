@@ -40,15 +40,21 @@ func (client *Client) reset() {
 }
 
 // UpdCandles - update candles
-func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Candles, batchNums int) (
+func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Candles, batchNums int, logger *zap.Logger) (
 	*tradingdb2pb.ReplyUpdCandles, error) {
 
 	if client.conn == nil || client.client == nil {
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
 		if err != nil {
-			tradingdb2utils.Error("Client.UpdCandles:grpc.Dial",
-				zap.String("server address", client.servAddr),
-				zap.Error(err))
+			if logger != nil {
+				logger.Error("Client.UpdCandles:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			} else {
+				tradingdb2utils.Error("Client.UpdCandles:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			}
 
 			return nil, err
 		}
@@ -59,8 +65,13 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Cand
 
 	stream, err := client.client.UpdCandles(ctx)
 	if err != nil {
-		tradingdb2utils.Error("Client.UpdCandles:Client.UpdCandles",
-			zap.Error(err))
+		if logger != nil {
+			logger.Error("Client.UpdCandles:Client.UpdCandles",
+				zap.Error(err))
+		} else {
+			tradingdb2utils.Error("Client.UpdCandles:Client.UpdCandles",
+				zap.Error(err))
+		}
 
 		// if error, reset
 		client.reset()
@@ -83,6 +94,14 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Cand
 
 		err := stream.Send(cc)
 		if err != nil {
+			if logger != nil {
+				logger.Error("Client.UpdCandles:stream.Send",
+					zap.Error(err))
+			} else {
+				tradingdb2utils.Error("Client.UpdCandles:stream.Send",
+					zap.Error(err))
+			}
+
 			return err
 		}
 
@@ -103,9 +122,15 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Cand
 
 	reply, err := stream.CloseAndRecv()
 	if err != nil {
-		tradingdb2utils.Error("Client.UpdCandles:stream.CloseAndRecv",
-			zap.Int("sent nums", sentnums),
-			zap.Error(err))
+		if logger != nil {
+			logger.Error("Client.UpdCandles:stream.CloseAndRecv",
+				zap.Int("sent nums", sentnums),
+				zap.Error(err))
+		} else {
+			tradingdb2utils.Error("Client.UpdCandles:stream.CloseAndRecv",
+				zap.Int("sent nums", sentnums),
+				zap.Error(err))
+		}
 
 		// if error, reset
 		client.reset()
@@ -117,15 +142,21 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Cand
 }
 
 // GetCandles - get candles
-func (client *Client) GetCandles(ctx context.Context, market string, symbol string, tag string) (
+func (client *Client) GetCandles(ctx context.Context, market string, symbol string, tag string, logger *zap.Logger) (
 	*tradingdb2pb.Candles, error) {
 
 	if client.conn == nil || client.client == nil {
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
 		if err != nil {
-			tradingdb2utils.Error("Client.UpdCandles:grpc.Dial",
-				zap.String("server address", client.servAddr),
-				zap.Error(err))
+			if logger != nil {
+				logger.Error("Client.UpdCandles:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			} else {
+				tradingdb2utils.Error("Client.UpdCandles:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			}
 
 			return nil, err
 		}
@@ -141,8 +172,13 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 		Tag:    tag,
 	})
 	if err != nil {
-		tradingdb2utils.Error("Client.UpdCandles:client.GetCandles",
-			zap.Error(err))
+		if logger != nil {
+			logger.Error("Client.UpdCandles:client.GetCandles",
+				zap.Error(err))
+		} else {
+			tradingdb2utils.Error("Client.UpdCandles:client.GetCandles",
+				zap.Error(err))
+		}
 
 		// if error, reset
 		client.reset()
@@ -164,10 +200,17 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 				return candles, nil
 			}
 
-			tradingdb2utils.Error("Client.UpdCandles:stream.Recv",
-				zap.Int("times", times),
-				zap.Int("candle nums", len(candles.Candles)),
-				zap.Error(err))
+			if logger != nil {
+				logger.Error("Client.UpdCandles:stream.Recv",
+					zap.Int("times", times),
+					zap.Int("candle nums", len(candles.Candles)),
+					zap.Error(err))
+			} else {
+				tradingdb2utils.Error("Client.UpdCandles:stream.Recv",
+					zap.Int("times", times),
+					zap.Int("candle nums", len(candles.Candles)),
+					zap.Error(err))
+			}
 
 			// if error, reset
 			client.reset()
