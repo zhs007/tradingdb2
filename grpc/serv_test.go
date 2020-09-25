@@ -78,6 +78,56 @@ func Test_Serv(t *testing.T) {
 		assert.Equal(t, replygetcandles.Candles[i].Open, int64(100+i))
 	}
 
+	// 100 < 200
+	candles1 := &tradingdb2pb.Candles{
+		Market: "bitmex",
+		Symbol: "BTX",
+		Tag:    "20200102",
+	}
+
+	for i := 0; i < 100; i++ {
+		candles1.Candles = append(candles1.Candles, &tradingdb2pb.Candle{
+			Ts:   int64(i),
+			Open: 100 + int64(i),
+		})
+	}
+
+	ret, err = client1.UpdCandles(context.Background(), candles1, 200, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, ret.LengthOK, int32(100))
+
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200102", nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, replygetcandles)
+	assert.Equal(t, replygetcandles.Market, "bitmex")
+	assert.Equal(t, replygetcandles.Symbol, "BTX")
+	assert.Equal(t, replygetcandles.Tag, "20200102")
+	assert.Equal(t, len(replygetcandles.Candles), 100)
+
+	for i := 0; i < 100; i++ {
+		assert.Equal(t, replygetcandles.Candles[i].Ts, int64(i))
+		assert.Equal(t, replygetcandles.Candles[i].Open, int64(100+i))
+	}
+
+	// 0 < 200
+	candles2 := &tradingdb2pb.Candles{
+		Market: "bitmex",
+		Symbol: "BTX",
+		Tag:    "20200103",
+	}
+
+	ret, err = client1.UpdCandles(context.Background(), candles2, 200, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, ret.LengthOK, int32(100))
+
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200103", nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, replygetcandles)
+	assert.Equal(t, replygetcandles.Market, "bitmex")
+	assert.Equal(t, replygetcandles.Symbol, "BTX")
+	assert.Equal(t, replygetcandles.Tag, "20200103")
+	assert.Equal(t, len(replygetcandles.Candles), 0)
+
 	serv.Stop()
 
 	t.Logf("Test_Serv OK")

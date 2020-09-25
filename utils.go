@@ -42,6 +42,15 @@ type FuncOnBatchCandles func(candles *tradingdb2pb.Candles) error
 
 // BatchCandles - batch candles
 func BatchCandles(candles *tradingdb2pb.Candles, nums int, onBatch FuncOnBatchCandles) error {
+	if len(candles.Candles) == 0 {
+		err := onBatch(&tradingdb2pb.Candles{})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	curlen := nums
 	for i := 0; i < len(candles.Candles); i += curlen {
 		if i+nums > len(candles.Candles) {
