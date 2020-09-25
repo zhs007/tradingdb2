@@ -6,7 +6,7 @@ import (
 	"net"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
-	tradingdb2pb "github.com/zhs007/tradingdb2/pb"
+	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	tradingdb2ver "github.com/zhs007/tradingdb2/ver"
 	"go.uber.org/zap"
@@ -83,7 +83,8 @@ func (serv *Serv) UpdCandles(stream tradingdb2pb.TradingDB2Service_UpdCandlesSer
 				err := serv.DB.UpdCandles(stream.Context(), candles)
 				if err != nil {
 					tradingdb2utils.Error("Serv.UpdCandles:DB.UpdCandles",
-						tradingdb2utils.JSON("caldles", req.Candles),
+						zap.Int("length", len(candles.Candles)),
+						zap.Int("times", times),
 						zap.Error(err))
 
 					return err

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	tradingdb2 "github.com/zhs007/tradingdb2"
-	tradingdb2pb "github.com/zhs007/tradingdb2/pb"
+	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
 )
 
 func Test_Serv(t *testing.T) {

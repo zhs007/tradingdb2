@@ -3,7 +3,7 @@ package tradingdb2
 import (
 	"sort"
 
-	tradingdb2pb "github.com/zhs007/tradingdb2/pb"
+	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
 )
 
 // SortCandles - sort Candles

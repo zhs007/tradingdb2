@@ -1,6 +1,6 @@
 syntax = "proto3";
 package tradingdb2pb;
-option go_package = "github.com/zhs007/tradingdb2/pb";
+option go_package = "github.com/zhs007/tradingdb2/tradingdb2pb";
 
 // Candle - candle
 message Candle {

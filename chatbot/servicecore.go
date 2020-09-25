@@ -6,7 +6,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	chatbot "github.com/zhs007/chatbot"
 	chatbotpb "github.com/zhs007/chatbot/chatbotpb"
-	tradingdb2pb "github.com/zhs007/tradingdb2/pb"
+	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
 )
 
 // ServiceCore - chatbot service core

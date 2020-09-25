@@ -5,7 +5,7 @@ import (
 	"io"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
-	tradingdb2pb "github.com/zhs007/tradingdb2/pb"
+	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
