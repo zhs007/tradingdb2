@@ -1,5 +1,5 @@
 syntax = "proto3";
-package charlescorepb;
+package tradingdb2pb;
 option go_package = "github.com/zhs007/tradingdb2/tradingdb2pb";
 
 // ChatBotData - chatbot data

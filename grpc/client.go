@@ -195,6 +195,12 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 
 	for {
 		req, err := stream.Recv()
+		if req != nil && (err == nil || err == io.EOF) {
+			times++
+
+			tradingdb2.MergeCandles(candles, req.Candles)
+		}
+
 		if err != nil {
 			if err == io.EOF {
 				return candles, nil
@@ -217,9 +223,5 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 
 			return nil, err
 		}
-
-		times++
-
-		tradingdb2.MergeCandles(candles, req.Candles)
 	}
 }

@@ -78,6 +78,43 @@ func (serv *Serv) UpdCandles(stream tradingdb2pb.TradingDB2Service_UpdCandlesSer
 
 	for {
 		req, err := stream.Recv()
+		if req != nil && (err == nil || err == io.EOF) {
+			if times == 0 {
+				if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+					tradingdb2utils.Error("Serv.UpdCandles:Token",
+						zap.Int("length", len(candles.Candles)),
+						zap.Int("times", times),
+						zap.String("token", req.Token),
+						zap.Error(tradingdb2.ErrInvalidToken))
+
+					return tradingdb2.ErrInvalidToken
+				}
+
+				if req.Candles.Market == "" ||
+					req.Candles.Symbol == "" ||
+					req.Candles.Tag == "" {
+
+					tradingdb2utils.Error("Serv.UpdCandles:Market|Symbol|Tag",
+						zap.Int("length", len(candles.Candles)),
+						zap.Int("times", times),
+						zap.String("market", req.Candles.Market),
+						zap.String("symbol", req.Candles.Symbol),
+						zap.String("tag", req.Candles.Tag),
+						zap.Error(tradingdb2.ErrInvalidUpdCandlesParams))
+
+					return tradingdb2.ErrInvalidUpdCandlesParams
+				}
+
+				candles.Market = req.Candles.Market
+				candles.Symbol = req.Candles.Symbol
+				candles.Tag = req.Candles.Tag
+			}
+
+			times++
+
+			tradingdb2.MergeCandles(candles, req.Candles)
+		}
+
 		if err != nil {
 			if err == io.EOF {
 				err := serv.DB.UpdCandles(stream.Context(), candles)
@@ -102,88 +139,6 @@ func (serv *Serv) UpdCandles(stream tradingdb2pb.TradingDB2Service_UpdCandlesSer
 
 			return err
 		}
-
-		if times == 0 {
-			if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
-				tradingdb2utils.Error("Serv.UpdCandles:Token",
-					zap.Int("length", len(candles.Candles)),
-					zap.Int("times", times),
-					zap.String("token", req.Token),
-					zap.Error(tradingdb2.ErrInvalidToken))
-
-				return tradingdb2.ErrInvalidToken
-			}
-
-			if req.Candles.Market == "" ||
-				req.Candles.Symbol == "" ||
-				req.Candles.Tag == "" {
-
-				tradingdb2utils.Error("Serv.UpdCandles:Market|Symbol|Tag",
-					zap.Int("length", len(candles.Candles)),
-					zap.Int("times", times),
-					zap.String("market", req.Candles.Market),
-					zap.String("symbol", req.Candles.Symbol),
-					zap.String("tag", req.Candles.Tag),
-					zap.Error(tradingdb2.ErrInvalidUpdCandlesParams))
-
-				return tradingdb2.ErrInvalidUpdCandlesParams
-			}
-
-			// token = req.Token
-
-			candles.Market = req.Candles.Market
-			candles.Symbol = req.Candles.Symbol
-			candles.Tag = req.Candles.Tag
-		}
-		// } else {
-		// 	if token != req.Token {
-		// 		tradingdb2utils.Error("Serv.UpdCandles:Token",
-		// 			zap.Int("length", len(candles.Candles)),
-		// 			zap.Int("times", times),
-		// 			zap.String("first token", token),
-		// 			zap.String("token", req.Token),
-		// 			zap.Error(tradingdb2.ErrInvalidToken))
-
-		// 		return tradingdb2.ErrInvalidToken
-		// 	}
-
-		// 	if candles.Market != req.Candles.Market {
-		// 		tradingdb2utils.Error("Serv.UpdCandles:Market",
-		// 			zap.Int("length", len(candles.Candles)),
-		// 			zap.Int("times", times),
-		// 			zap.String("first market", candles.Market),
-		// 			zap.String("market", req.Candles.Market),
-		// 			zap.Error(tradingdb2.ErrInvalidMarket))
-
-		// 		return tradingdb2.ErrInvalidMarket
-		// 	}
-
-		// 	if candles.Symbol != req.Candles.Symbol {
-		// 		tradingdb2utils.Error("Serv.UpdCandles:Symbol",
-		// 			zap.Int("length", len(candles.Candles)),
-		// 			zap.Int("times", times),
-		// 			zap.String("first symbol", candles.Symbol),
-		// 			zap.String("symbol", req.Candles.Symbol),
-		// 			zap.Error(tradingdb2.ErrInvalidSymbol))
-
-		// 		return tradingdb2.ErrInvalidSymbol
-		// 	}
-
-		// 	if candles.Tag != req.Candles.Tag {
-		// 		tradingdb2utils.Error("Serv.UpdCandles:Tag",
-		// 			zap.Int("length", len(candles.Candles)),
-		// 			zap.Int("times", times),
-		// 			zap.String("first tag", candles.Tag),
-		// 			zap.String("tag", req.Candles.Tag),
-		// 			zap.Error(tradingdb2.ErrInvalidTag))
-
-		// 		return tradingdb2.ErrInvalidTag
-		// 	}
-		// }
-
-		times++
-
-		tradingdb2.MergeCandles(candles, req.Candles)
 	}
 }
 
