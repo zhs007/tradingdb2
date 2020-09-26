@@ -118,7 +118,7 @@ func Test_Serv(t *testing.T) {
 
 	ret, err = client1.UpdCandles(context.Background(), candles2, 200, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, ret.LengthOK, int32(100))
+	assert.Equal(t, ret.LengthOK, int32(0))
 
 	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200103", nil)
 	assert.NoError(t, err)
