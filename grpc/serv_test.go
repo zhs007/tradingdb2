@@ -128,6 +128,47 @@ func Test_Serv(t *testing.T) {
 	assert.Equal(t, replygetcandles.Tag, "20200103")
 	assert.Equal(t, len(replygetcandles.Candles), 0)
 
+	si := &tradingdb2pb.SymbolInfo{
+		Market: "cnfund",
+		Symbol: "240001",
+		Fund: &tradingdb2pb.Fund{
+			Code:       "240001",
+			Name:       "华宝宝康消费品",
+			Tags:       []string{"开放式", "混合型", "高风险"},
+			CreateTime: int64(123),
+			Size: []*tradingdb2pb.FundSize{&tradingdb2pb.FundSize{
+				Size: 1.23,
+				Time: 123,
+			}},
+			Company: "华宝基金管理有限公司",
+			// Managers   []*FundManager `protobuf:"bytes,7,rep,name=managers,proto3" json:"managers,omitempty"`
+			// Results    []*FundResult  `protobuf:"bytes,8,rep,name=results,proto3" json:"results,omitempty"`
+		},
+	}
+
+	replyupdsymbol, err := client1.UpdSymbol(context.Background(), si, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, replyupdsymbol)
+	assert.Equal(t, replyupdsymbol.IsOK, true)
+
+	replygetsymbol, err := client1.GetSymbol(context.Background(), "cnfund", "240001", nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, replygetsymbol)
+	assert.Equal(t, replygetsymbol.Market, "cnfund")
+	assert.Equal(t, replygetsymbol.Symbol, "240001")
+	assert.NotNil(t, replygetsymbol.Fund)
+	assert.Equal(t, replygetsymbol.Fund.Code, "240001")
+	assert.Equal(t, replygetsymbol.Fund.Name, "华宝宝康消费品")
+	assert.Equal(t, len(replygetsymbol.Fund.Tags), 3)
+	assert.Equal(t, replygetsymbol.Fund.Tags[0], "开放式")
+	assert.Equal(t, replygetsymbol.Fund.Tags[1], "混合型")
+	assert.Equal(t, replygetsymbol.Fund.Tags[2], "高风险")
+	assert.Equal(t, replygetsymbol.Fund.CreateTime, int64(123))
+	assert.Equal(t, len(replygetsymbol.Fund.Size), 1)
+	assert.Equal(t, replygetsymbol.Fund.Size[0].Size, float32(1.23))
+	assert.Equal(t, replygetsymbol.Fund.Size[0].Time, int64(123))
+	assert.Equal(t, replygetsymbol.Fund.Company, "华宝基金管理有限公司")
+
 	serv.Stop()
 
 	t.Logf("Test_Serv OK")

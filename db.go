@@ -12,9 +12,14 @@ import (
 
 const dbname = "tradingdb2"
 const candlesKeyPrefix = "candles:"
+const symbolKeyPrefix = "symbol:"
 
 func makeCandlesDBKey(market string, symbol string, tag string) string {
 	return tradingdb2utils.AppendString(candlesKeyPrefix, market, ":", symbol, ":", tag)
+}
+
+func makeSymbolDBKey(market string, symbol string) string {
+	return tradingdb2utils.AppendString(symbolKeyPrefix, market, ":", symbol)
 }
 
 // DB - database
@@ -132,4 +137,58 @@ func (db *DB) GetAllData(ctx context.Context) (*TreeMapNode, error) {
 	}
 
 	return root, nil
+}
+
+// UpdSymbol - update symbol
+func (db *DB) UpdSymbol(ctx context.Context, si *tradingdb2pb.SymbolInfo) error {
+	if si.Market == "" {
+		return ErrInvalidMarket
+	}
+
+	if si.Symbol == "" {
+		return ErrInvalidSymbol
+	}
+
+	buf, err := proto.Marshal(si)
+	if err != nil {
+		return err
+	}
+
+	err = db.AnkaDB.Set(ctx, dbname, makeSymbolDBKey(si.Market, si.Symbol), buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetSymbol - get symbol
+func (db *DB) GetSymbol(ctx context.Context, market string, symbol string) (
+	*tradingdb2pb.SymbolInfo, error) {
+
+	if market == "" {
+		return nil, ErrInvalidMarket
+	}
+
+	if symbol == "" {
+		return nil, ErrInvalidSymbol
+	}
+
+	buf, err := db.AnkaDB.Get(ctx, dbname, makeSymbolDBKey(market, symbol))
+	if err != nil {
+		if err == ankadb.ErrNotFoundKey {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	si := &tradingdb2pb.SymbolInfo{}
+
+	err = proto.Unmarshal(buf, si)
+	if err != nil {
+		return nil, err
+	}
+
+	return si, nil
 }
