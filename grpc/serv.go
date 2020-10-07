@@ -178,3 +178,13 @@ func (serv *Serv) GetCandles(req *tradingdb2pb.RequestGetCandles, stream trading
 		return stream.Send(cc)
 	})
 }
+
+// UpdSymbol - update symbol
+func (serv *Serv) UpdSymbol(context.Context, *tradingdb2pb.RequestUpdSymbol) (*tradingdb2pb.ReplyUpdSymbol, error) {
+	return nil, nil
+}
+
+// GetSymbol - get symbol
+func (serv *Serv) GetSymbol(context.Context, *tradingdb2pb.RequestGetSymbol) (*tradingdb2pb.ReplyGetSymbol, error) {
+	return nil, nil
+}
