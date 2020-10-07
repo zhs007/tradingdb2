@@ -149,11 +149,11 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
 		if err != nil {
 			if logger != nil {
-				logger.Error("Client.UpdCandles:grpc.Dial",
+				logger.Error("Client.GetCandles:grpc.Dial",
 					zap.String("server address", client.servAddr),
 					zap.Error(err))
 			} else {
-				tradingdb2utils.Error("Client.UpdCandles:grpc.Dial",
+				tradingdb2utils.Error("Client.GetCandles:grpc.Dial",
 					zap.String("server address", client.servAddr),
 					zap.Error(err))
 			}
@@ -173,10 +173,10 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 	})
 	if err != nil {
 		if logger != nil {
-			logger.Error("Client.UpdCandles:client.GetCandles",
+			logger.Error("Client.GetCandles:client.GetCandles",
 				zap.Error(err))
 		} else {
-			tradingdb2utils.Error("Client.UpdCandles:client.GetCandles",
+			tradingdb2utils.Error("Client.GetCandles:client.GetCandles",
 				zap.Error(err))
 		}
 
@@ -207,12 +207,12 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 			}
 
 			if logger != nil {
-				logger.Error("Client.UpdCandles:stream.Recv",
+				logger.Error("Client.GetCandles:stream.Recv",
 					zap.Int("times", times),
 					zap.Int("candle nums", len(candles.Candles)),
 					zap.Error(err))
 			} else {
-				tradingdb2utils.Error("Client.UpdCandles:stream.Recv",
+				tradingdb2utils.Error("Client.GetCandles:stream.Recv",
 					zap.Int("times", times),
 					zap.Int("candle nums", len(candles.Candles)),
 					zap.Error(err))
@@ -224,4 +224,97 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 			return nil, err
 		}
 	}
+}
+
+// UpdSymbol - update symbol
+func (client *Client) UpdSymbol(ctx context.Context, si *tradingdb2pb.SymbolInfo, logger *zap.Logger) (
+	*tradingdb2pb.ReplyUpdSymbol, error) {
+
+	if client.conn == nil || client.client == nil {
+		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
+		if err != nil {
+			if logger != nil {
+				logger.Error("Client.UpdSymbol:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			} else {
+				tradingdb2utils.Error("Client.UpdSymbol:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			}
+
+			return nil, err
+		}
+
+		client.conn = conn
+		client.client = tradingdb2pb.NewTradingDB2ServiceClient(conn)
+	}
+
+	reply, err := client.client.UpdSymbol(ctx, &tradingdb2pb.RequestUpdSymbol{
+		Token:  client.token,
+		Symbol: si,
+	})
+	if err != nil {
+		if logger != nil {
+			logger.Error("Client.UpdSymbol:Client.UpdSymbol",
+				zap.Error(err))
+		} else {
+			tradingdb2utils.Error("Client.UpdSymbol:Client.UpdSymbol",
+				zap.Error(err))
+		}
+
+		// if error, reset
+		client.reset()
+
+		return nil, err
+	}
+
+	return reply, nil
+}
+
+// GetSymbol - get symbol
+func (client *Client) GetSymbol(ctx context.Context, market string, symbol string, logger *zap.Logger) (
+	*tradingdb2pb.SymbolInfo, error) {
+
+	if client.conn == nil || client.client == nil {
+		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
+		if err != nil {
+			if logger != nil {
+				logger.Error("Client.GetSymbol:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			} else {
+				tradingdb2utils.Error("Client.GetSymbol:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			}
+
+			return nil, err
+		}
+
+		client.conn = conn
+		client.client = tradingdb2pb.NewTradingDB2ServiceClient(conn)
+	}
+
+	reply, err := client.client.GetSymbol(ctx, &tradingdb2pb.RequestGetSymbol{
+		Token:  client.token,
+		Market: market,
+		Symbol: symbol,
+	})
+	if err != nil {
+		if logger != nil {
+			logger.Error("Client.GetSymbol:client.GetSymbol",
+				zap.Error(err))
+		} else {
+			tradingdb2utils.Error("Client.GetSymbol:client.GetSymbol",
+				zap.Error(err))
+		}
+
+		// if error, reset
+		client.reset()
+
+		return nil, err
+	}
+
+	return reply.Symbol, nil
 }
