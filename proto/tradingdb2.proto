@@ -58,7 +58,9 @@ message Fund {
 
 // SymbolInfo - symbol infomation
 message SymbolInfo {
-    Fund fund = 1;
+    string market = 1;
+    string symbol = 2;
+    Fund fund = 3;
 }
 
 // RequestUpdCandles - request UpdCandles
