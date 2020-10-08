@@ -142,7 +142,7 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Cand
 }
 
 // GetCandles - get candles
-func (client *Client) GetCandles(ctx context.Context, market string, symbol string, tag string, logger *zap.Logger) (
+func (client *Client) GetCandles(ctx context.Context, market string, symbol string, tags []string, tsStart int64, tsEnd int64, logger *zap.Logger) (
 	*tradingdb2pb.Candles, error) {
 
 	if client.conn == nil || client.client == nil {
@@ -166,10 +166,12 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 	}
 
 	stream, err := client.client.GetCandles(ctx, &tradingdb2pb.RequestGetCandles{
-		Token:  client.token,
-		Market: market,
-		Symbol: symbol,
-		Tag:    tag,
+		Token:   client.token,
+		Market:  market,
+		Symbol:  symbol,
+		Tags:    tags,
+		TsStart: tsStart,
+		TsEnd:   tsEnd,
 	})
 	if err != nil {
 		if logger != nil {
@@ -189,7 +191,6 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 	candles := &tradingdb2pb.Candles{
 		Market: market,
 		Symbol: symbol,
-		Tag:    tag,
 	}
 	times := 0
 

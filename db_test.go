@@ -34,27 +34,28 @@ func Test_DB(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	candles, err := db.GetCandles(context.Background(), "", "", "")
+	candles, err := db.GetCandles(context.Background(), "", "", []string{""}, 0, 0)
 	assert.Error(t, err)
 
-	candles, err = db.GetCandles(context.Background(), "bitmex", "", "")
+	candles, err = db.GetCandles(context.Background(), "bitmex", "", []string{""}, 0, 0)
 	assert.Error(t, err)
 
-	candles, err = db.GetCandles(context.Background(), "bitmex", "BTX", "")
-	assert.Error(t, err)
+	candles, err = db.GetCandles(context.Background(), "bitmex", "BTX", []string{""}, 0, 0)
+	assert.NoError(t, err)
+	assert.NotNil(t, candles)
 
-	candles, err = db.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
+	candles, err = db.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200101"}, 0, 0)
 	assert.NoError(t, err)
 
 	assert.Equal(t, candles.Market, "bitmex")
 	assert.Equal(t, candles.Symbol, "BTX")
-	assert.Equal(t, candles.Tag, "20200101")
+	// assert.Equal(t, candles.Tag, "20200101")
 	assert.Equal(t, len(candles.Candles), 1)
 	assert.Equal(t, candles.Candles[0].Open, int64(100))
 
-	candles, err = db.GetCandles(context.Background(), "bitmex", "BTX", "20200102")
+	candles, err = db.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 0, 0)
 	assert.NoError(t, err)
-	assert.Nil(t, candles)
+	assert.NotNil(t, candles)
 
 	t.Logf("Test_DB OK")
 }

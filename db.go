@@ -18,6 +18,10 @@ func makeCandlesDBKey(market string, symbol string, tag string) string {
 	return tradingdb2utils.AppendString(candlesKeyPrefix, market, ":", symbol, ":", tag)
 }
 
+func makeCandlesDBKeyPrefix(market string, symbol string) string {
+	return tradingdb2utils.AppendString(candlesKeyPrefix, market, ":", symbol, ":")
+}
+
 func makeSymbolDBKey(market string, symbol string) string {
 	return tradingdb2utils.AppendString(symbolKeyPrefix, market, ":", symbol)
 }
@@ -79,7 +83,7 @@ func (db *DB) UpdCandles(ctx context.Context, candles *tradingdb2pb.Candles) err
 }
 
 // GetCandles - get candles
-func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tag string) (
+func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tags []string, tsStart int64, tsEnd int64) (
 	*tradingdb2pb.Candles, error) {
 
 	if market == "" {
@@ -90,27 +94,42 @@ func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tag 
 		return nil, ErrInvalidSymbol
 	}
 
-	if tag == "" {
-		return nil, ErrInvalidTag
+	candles := &tradingdb2pb.Candles{
+		Market: market,
+		Symbol: symbol,
 	}
 
-	buf, err := db.AnkaDB.Get(ctx, dbname, makeCandlesDBKey(market, symbol, tag))
-	if err != nil {
-		if err == ankadb.ErrNotFoundKey {
-			return nil, nil
+	err := db.AnkaDB.ForEachWithPrefix(ctx, dbname, makeCandlesDBKeyPrefix(market, symbol), func(key string, buf []byte) error {
+		cc := &tradingdb2pb.Candles{}
+
+		err := proto.Unmarshal(buf, cc)
+		if err != nil {
+			return err
 		}
 
-		return nil, err
-	}
+		if len(tags) == 0 || tradingdb2utils.IndexOfStringSlice(tags, cc.Tag, 0) >= 0 {
+			if tsStart > 0 || tsEnd > 0 {
+				for _, v := range cc.Candles {
+					if v.Ts >= tsStart && v.Ts <= tsEnd {
+						candles.Candles = append(candles.Candles, v)
+					}
+				}
+			} else {
+				candles.Candles = append(candles.Candles, cc.Candles...)
+			}
+		}
 
-	res := &tradingdb2pb.Candles{}
-
-	err = proto.Unmarshal(buf, res)
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	// if len(candles.Candles) == 0 {
+	// 	return nil, nil
+	// }
+
+	return candles, nil
 }
 
 // GetAllData - get all data

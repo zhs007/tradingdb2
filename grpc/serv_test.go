@@ -43,7 +43,7 @@ func Test_Serv(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, ret)
 
-	replygetcandles, err := client0.GetCandles(context.Background(), "bitmex", "BTX", "20200101", nil)
+	replygetcandles, err := client0.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200101"}, 0, 0, nil)
 	assert.Error(t, err)
 	assert.Nil(t, replygetcandles)
 
@@ -54,23 +54,23 @@ func Test_Serv(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(100))
 
-	dbcandles, err := serv.DB.GetCandles(context.Background(), "bitmex", "BTX", "20200101")
+	dbcandles, err := serv.DB.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200101"}, 0, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, dbcandles.Market, "bitmex")
 	assert.Equal(t, dbcandles.Symbol, "BTX")
-	assert.Equal(t, dbcandles.Tag, "20200101")
+	// assert.Equal(t, dbcandles.Tag, "20200101")
 	assert.Equal(t, len(dbcandles.Candles), 100)
 	for i := 0; i < 100; i++ {
 		assert.Equal(t, dbcandles.Candles[i].Ts, int64(i))
 		assert.Equal(t, dbcandles.Candles[i].Open, int64(100+i))
 	}
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200101", nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200101"}, 0, 0, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
 	assert.Equal(t, replygetcandles.Symbol, "BTX")
-	assert.Equal(t, replygetcandles.Tag, "20200101")
+	// assert.Equal(t, replygetcandles.Tag, "20200101")
 	assert.Equal(t, len(replygetcandles.Candles), 100)
 
 	for i := 0; i < 100; i++ {
@@ -96,18 +96,65 @@ func Test_Serv(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(100))
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200102", nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 0, 0, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
 	assert.Equal(t, replygetcandles.Symbol, "BTX")
-	assert.Equal(t, replygetcandles.Tag, "20200102")
+	// assert.Equal(t, replygetcandles.Tag, "20200102")
 	assert.Equal(t, len(replygetcandles.Candles), 100)
 
 	for i := 0; i < 100; i++ {
 		assert.Equal(t, replygetcandles.Candles[i].Ts, int64(i))
 		assert.Equal(t, replygetcandles.Candles[i].Open, int64(100+i))
 	}
+
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 0, 90, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, replygetcandles)
+	assert.Equal(t, replygetcandles.Market, "bitmex")
+	assert.Equal(t, replygetcandles.Symbol, "BTX")
+	// assert.Equal(t, replygetcandles.Tag, "20200102")
+	assert.Equal(t, len(replygetcandles.Candles), 91)
+
+	for i := 0; i < 91; i++ {
+		assert.Equal(t, replygetcandles.Candles[i].Ts, int64(i))
+		assert.Equal(t, replygetcandles.Candles[i].Open, int64(100+i))
+	}
+
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 10, 11, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, replygetcandles)
+	assert.Equal(t, replygetcandles.Market, "bitmex")
+	assert.Equal(t, replygetcandles.Symbol, "BTX")
+	// assert.Equal(t, replygetcandles.Tag, "20200102")
+	assert.Equal(t, len(replygetcandles.Candles), 2)
+
+	for i := 0; i < 2; i++ {
+		assert.Equal(t, replygetcandles.Candles[i].Ts, int64(10+i))
+		assert.Equal(t, replygetcandles.Candles[i].Open, int64(110+i))
+	}
+
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 10, 10, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, replygetcandles)
+	assert.Equal(t, replygetcandles.Market, "bitmex")
+	assert.Equal(t, replygetcandles.Symbol, "BTX")
+	// assert.Equal(t, replygetcandles.Tag, "20200102")
+	assert.Equal(t, len(replygetcandles.Candles), 1)
+
+	for i := 0; i < 1; i++ {
+		assert.Equal(t, replygetcandles.Candles[i].Ts, int64(10+i))
+		assert.Equal(t, replygetcandles.Candles[i].Open, int64(110+i))
+	}
+
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 10, 9, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, replygetcandles)
+	assert.Equal(t, replygetcandles.Market, "bitmex")
+	assert.Equal(t, replygetcandles.Symbol, "BTX")
+	// assert.Equal(t, replygetcandles.Tag, "20200102")
+	assert.Equal(t, len(replygetcandles.Candles), 0)
 
 	// 0 < 200
 	candles2 := &tradingdb2pb.Candles{
@@ -120,12 +167,12 @@ func Test_Serv(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(0))
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", "20200103", nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200103"}, 0, 0, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
 	assert.Equal(t, replygetcandles.Symbol, "BTX")
-	assert.Equal(t, replygetcandles.Tag, "20200103")
+	// assert.Equal(t, replygetcandles.Tag, "20200103")
 	assert.Equal(t, len(replygetcandles.Candles), 0)
 
 	si := &tradingdb2pb.SymbolInfo{

@@ -145,7 +145,7 @@ func (serv *Serv) UpdCandles(stream tradingdb2pb.TradingDB2Service_UpdCandlesSer
 // GetCandles - get candles
 func (serv *Serv) GetCandles(req *tradingdb2pb.RequestGetCandles, stream tradingdb2pb.TradingDB2Service_GetCandlesServer) error {
 	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
-		tradingdb2utils.Error("Serv.UpdCandles:checkToken",
+		tradingdb2utils.Error("Serv.GetCandles:checkToken",
 			zap.String("token", req.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
 			zap.Error(tradingdb2.ErrInvalidToken))
@@ -153,9 +153,16 @@ func (serv *Serv) GetCandles(req *tradingdb2pb.RequestGetCandles, stream trading
 		return tradingdb2.ErrInvalidToken
 	}
 
-	candles, err := serv.DB.GetCandles(stream.Context(), req.Market, req.Symbol, req.Tag)
+	var tags []string
+	if len(req.Tags) > 0 {
+		tags = req.Tags
+	} else if len(req.Tags) == 0 && req.Tag != "" {
+		tags = append(tags, req.Tag)
+	}
+
+	candles, err := serv.DB.GetCandles(stream.Context(), req.Market, req.Symbol, tags, req.TsStart, req.TsEnd)
 	if err != nil {
-		tradingdb2utils.Error("Serv.UpdCandles:DB.UpdCandles",
+		tradingdb2utils.Error("Serv.GetCandles:DB.GetCandles",
 			tradingdb2utils.JSON("params", req),
 			zap.Error(err))
 
