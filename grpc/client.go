@@ -11,6 +11,9 @@ import (
 	"google.golang.org/grpc"
 )
 
+// FuncOnGetSymbols - onGetSymbols(*tradingdb2pb.SymbolInfo)
+type FuncOnGetSymbols func(*tradingdb2pb.SymbolInfo)
+
 // Client - TradingDB2ServiceClient
 type Client struct {
 	servAddr string
@@ -318,4 +321,74 @@ func (client *Client) GetSymbol(ctx context.Context, market string, symbol strin
 	}
 
 	return reply.Symbol, nil
+}
+
+// GetSymbols - get symbols
+func (client *Client) GetSymbols(ctx context.Context, market string, symbols []string, onGetSymbols FuncOnGetSymbols, logger *zap.Logger) error {
+
+	if client.conn == nil || client.client == nil {
+		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
+		if err != nil {
+			if logger != nil {
+				logger.Error("Client.GetSymbols:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			} else {
+				tradingdb2utils.Error("Client.GetSymbols:grpc.Dial",
+					zap.String("server address", client.servAddr),
+					zap.Error(err))
+			}
+
+			return err
+		}
+
+		client.conn = conn
+		client.client = tradingdb2pb.NewTradingDB2ServiceClient(conn)
+	}
+
+	stream, err := client.client.GetSymbols(ctx, &tradingdb2pb.RequestGetSymbols{
+		Token:   client.token,
+		Market:  market,
+		Symbols: symbols,
+	})
+	if err != nil {
+		if logger != nil {
+			logger.Error("Client.GetSymbols:client.GetSymbols",
+				zap.Error(err))
+		} else {
+			tradingdb2utils.Error("Client.GetSymbols:client.GetSymbols",
+				zap.Error(err))
+		}
+
+		// if error, reset
+		client.reset()
+
+		return err
+	}
+
+	for {
+		req, err := stream.Recv()
+		if req != nil && req.Symbol != nil {
+			onGetSymbols(req.Symbol)
+		}
+
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+
+			if logger != nil {
+				logger.Error("Client.GetSymbols:stream.Recv",
+					zap.Error(err))
+			} else {
+				tradingdb2utils.Error("Client.GetSymbols:stream.Recv",
+					zap.Error(err))
+			}
+
+			// if error, reset
+			client.reset()
+
+			return err
+		}
+	}
 }
