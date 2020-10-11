@@ -26,6 +26,10 @@ func makeSymbolDBKey(market string, symbol string) string {
 	return tradingdb2utils.AppendString(symbolKeyPrefix, market, ":", symbol)
 }
 
+func makeSymbolDBKeyPrefix(market string) string {
+	return tradingdb2utils.AppendString(symbolKeyPrefix, market, ":")
+}
+
 // DB - database
 type DB struct {
 	AnkaDB ankadb.AnkaDB
@@ -210,4 +214,30 @@ func (db *DB) GetSymbol(ctx context.Context, market string, symbol string) (
 	}
 
 	return si, nil
+}
+
+// GetMarketSymbols - get symbols in market
+func (db *DB) GetMarketSymbols(ctx context.Context, market string) ([]string, error) {
+	if market == "" {
+		return nil, ErrInvalidMarket
+	}
+
+	symbols := []string{}
+	err := db.AnkaDB.ForEachWithPrefix(ctx, dbname, makeSymbolDBKeyPrefix(market), func(key string, buf []byte) error {
+		si := &tradingdb2pb.SymbolInfo{}
+
+		err := proto.Unmarshal(buf, si)
+		if err != nil {
+			return err
+		}
+
+		symbols = append(symbols, si.Symbol)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return symbols, nil
 }

@@ -197,7 +197,21 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingdb2pb.RequestUpdSym
 		return nil, tradingdb2.ErrInvalidToken
 	}
 
-	err := serv.DB.UpdSymbol(ctx, req.Symbol)
+	symbol, err := serv.DB.GetSymbol(ctx, req.Symbol.Market, req.Symbol.Symbol)
+	if err != nil {
+		tradingdb2utils.Error("Serv.UpdSymbol:DB.GetSymbol",
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	if symbol != nil {
+		symbol.Fund = tradingdb2.MergeFund(symbol.Fund, req.Symbol.Fund)
+	} else {
+		symbol = req.Symbol
+	}
+
+	err = serv.DB.UpdSymbol(ctx, symbol)
 	if err != nil {
 		tradingdb2utils.Error("Serv.UpdSymbol:DB.UpdSymbol",
 			zap.Error(err))
@@ -238,4 +252,61 @@ func (serv *Serv) GetSymbol(ctx context.Context, req *tradingdb2pb.RequestGetSym
 	}
 
 	return res, nil
+}
+
+// GetSymbols - get symbols
+func (serv *Serv) GetSymbols(req *tradingdb2pb.RequestGetSymbols, stream tradingdb2pb.TradingDB2Service_GetSymbolsServer) error {
+	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+		tradingdb2utils.Error("Serv.GetSymbols:checkToken",
+			zap.String("token", req.Token),
+			zap.Strings("tokens", serv.Cfg.Tokens),
+			zap.Error(tradingdb2.ErrInvalidToken))
+
+		return tradingdb2.ErrInvalidToken
+	}
+
+	var symbols []string
+	if len(req.Symbols) > 0 {
+		symbols = req.Symbols
+	} else {
+		arr, err := serv.DB.GetMarketSymbols(stream.Context(), req.Market)
+		if err != nil {
+			tradingdb2utils.Error("Serv.GetSymbols:GetMarketSymbols",
+				zap.String("Market", req.Market),
+				zap.Error(err))
+
+			return err
+		}
+
+		symbols = arr
+	}
+
+	for _, v := range symbols {
+		si, err := serv.DB.GetSymbol(stream.Context(), req.Market, v)
+		if err != nil {
+			tradingdb2utils.Error("Serv.GetSymbols:DB.GetSymbol",
+				zap.String("market", req.Market),
+				zap.String("sytmbol", v),
+				zap.Error(err))
+
+			// return err
+		}
+
+		if si != nil {
+			res := &tradingdb2pb.ReplyGetSymbol{
+				Symbol: si,
+			}
+
+			err = stream.Send(res)
+			if err != nil {
+				tradingdb2utils.Error("Serv.GetSymbols:Send",
+					zap.String("sytmbol", v),
+					zap.Error(err))
+
+				// return err
+			}
+		}
+	}
+
+	return nil
 }

@@ -216,6 +216,25 @@ func Test_Serv(t *testing.T) {
 	assert.Equal(t, replygetsymbol.Fund.Size[0].Time, int64(123))
 	assert.Equal(t, replygetsymbol.Fund.Company, "华宝基金管理有限公司")
 
+	nums := 0
+	client1.GetSymbols(context.Background(), "cnfund", nil, func(si *tradingdb2pb.SymbolInfo) {
+		nums++
+
+		assert.Equal(t, si.Fund.Code, "240001")
+		assert.Equal(t, si.Fund.Name, "华宝宝康消费品")
+		assert.Equal(t, len(si.Fund.Tags), 3)
+		assert.Equal(t, si.Fund.Tags[0], "开放式")
+		assert.Equal(t, si.Fund.Tags[1], "混合型")
+		assert.Equal(t, si.Fund.Tags[2], "高风险")
+		assert.Equal(t, si.Fund.CreateTime, int64(123))
+		assert.Equal(t, len(si.Fund.Size), 1)
+		assert.Equal(t, si.Fund.Size[0].Size, float32(1.23))
+		assert.Equal(t, si.Fund.Size[0].Time, int64(123))
+		assert.Equal(t, si.Fund.Company, "华宝基金管理有限公司")
+	}, nil)
+
+	assert.Equal(t, nums, 1)
+
 	serv.Stop()
 
 	t.Logf("Test_Serv OK")
