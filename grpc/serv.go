@@ -207,6 +207,8 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingdb2pb.RequestUpdSym
 
 	if symbol != nil {
 		symbol.Fund = tradingdb2.MergeFund(symbol.Fund, req.Symbol.Fund)
+	} else {
+		symbol = req.Symbol
 	}
 
 	err = serv.DB.UpdSymbol(ctx, symbol)
