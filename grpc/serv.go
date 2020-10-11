@@ -197,7 +197,19 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingdb2pb.RequestUpdSym
 		return nil, tradingdb2.ErrInvalidToken
 	}
 
-	err := serv.DB.UpdSymbol(ctx, req.Symbol)
+	symbol, err := serv.DB.GetSymbol(ctx, req.Symbol.Market, req.Symbol.Symbol)
+	if err != nil {
+		tradingdb2utils.Error("Serv.UpdSymbol:DB.GetSymbol",
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	if symbol != nil {
+		symbol.Fund = tradingdb2.MergeFund(symbol.Fund, req.Symbol.Fund)
+	}
+
+	err = serv.DB.UpdSymbol(ctx, symbol)
 	if err != nil {
 		tradingdb2utils.Error("Serv.UpdSymbol:DB.UpdSymbol",
 			zap.Error(err))
