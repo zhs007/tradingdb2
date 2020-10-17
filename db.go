@@ -3,6 +3,7 @@ package tradingdb2
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	ankadb "github.com/zhs007/ankadb"
@@ -101,6 +102,10 @@ func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tags
 	candles := &tradingdb2pb.Candles{
 		Market: market,
 		Symbol: symbol,
+	}
+
+	if tsStart > 0 && tsEnd <= 0 {
+		tsEnd = time.Now().Unix()
 	}
 
 	err := db.AnkaDB.ForEachWithPrefix(ctx, dbname, makeCandlesDBKeyPrefix(market, symbol), func(key string, buf []byte) error {
