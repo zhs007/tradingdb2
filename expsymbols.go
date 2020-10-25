@@ -119,7 +119,10 @@ func ExpSymbols(ctx context.Context, fn string, db *DB, market string) error {
 				if curSymbol.Fund != nil {
 					json := jsoniter.ConfigCompatibleWithStandardLibrary
 
-					b, err := json.Marshal(curSymbol.Fund.Managers)
+					mgrs := curSymbol.Fund.Managers
+					FixFundManagers(mgrs)
+
+					b, err := json.Marshal(mgrs)
 					if err != nil {
 						tradingdb2utils.Warn("ExpSymbols:Marshal Managers",
 							zap.Error(err))

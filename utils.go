@@ -128,3 +128,40 @@ func MergeFund(fund0 *tradingdb2pb.Fund, fund1 *tradingdb2pb.Fund) *tradingdb2pb
 
 	return fund0
 }
+
+// FixFundResult - fix
+func FixFundResult(fr *tradingdb2pb.FundResult) {
+	if math.IsNaN(float64(fr.MaxDrawdown)) {
+		fr.MaxDrawdown = 0
+	}
+
+	if math.IsNaN(float64(fr.Sharpe)) {
+		fr.Sharpe = 0
+	}
+
+	if math.IsNaN(float64(fr.AnnualizedReturns)) {
+		fr.AnnualizedReturns = 0
+	}
+
+	if math.IsNaN(float64(fr.AnnualizedVolatility)) {
+		fr.AnnualizedVolatility = 0
+	}
+
+	if math.IsNaN(float64(fr.TotalReturns)) {
+		fr.TotalReturns = 0
+	}
+}
+
+// FixFundManager - fix
+func FixFundManager(fm *tradingdb2pb.FundManager) {
+	for _, v := range fm.Results {
+		FixFundResult(v)
+	}
+}
+
+// FixFundManagers - fix
+func FixFundManagers(fms []*tradingdb2pb.FundManager) {
+	for _, v := range fms {
+		FixFundManager(v)
+	}
+}
