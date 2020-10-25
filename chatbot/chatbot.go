@@ -45,6 +45,7 @@ func startServ(ctx context.Context, cfg *tradingdb2.Config, endchan chan int) (
 func startChatBot(ctx context.Context, chatbotcfg *chatbot.Config, trdb2serv *tradingdb2grpc.Serv, endchan chan int) error {
 
 	RegisterCmdExpAllData(trdb2serv)
+	RegistercmdExpSymbols(trdb2serv)
 
 	chatbotbase.SetLogger(tradingdb2utils.GetLogger())
 

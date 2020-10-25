@@ -8,6 +8,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/json-iterator/go v1.1.10
 	github.com/nicksnyder/go-i18n/v2 v2.0.3
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	github.com/zhs007/adacore v0.3.9
 	github.com/zhs007/ankadb v0.3.33
