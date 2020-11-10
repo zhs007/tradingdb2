@@ -6,7 +6,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	chatbot "github.com/zhs007/chatbot"
 	chatbotpb "github.com/zhs007/chatbot/chatbotpb"
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 )
 
 // ServiceCore - chatbot service core
@@ -15,7 +15,7 @@ type ServiceCore struct {
 
 // UnmarshalAppData - unmarshal
 func (core *ServiceCore) UnmarshalAppData(buf []byte) (proto.Message, error) {
-	ad := &tradingdb2pb.ChatBotData{}
+	ad := &tradingpb.ChatBotData{}
 
 	err := proto.Unmarshal(buf, ad)
 	if err != nil {
@@ -27,12 +27,12 @@ func (core *ServiceCore) UnmarshalAppData(buf []byte) (proto.Message, error) {
 
 // NewAppData - new a app data
 func (core *ServiceCore) NewAppData() (proto.Message, error) {
-	return &tradingdb2pb.ChatBotData{}, nil
+	return &tradingpb.ChatBotData{}, nil
 }
 
 // UnmarshalUserData - unmarshal
 func (core *ServiceCore) UnmarshalUserData(buf []byte) (proto.Message, error) {
-	ud := &tradingdb2pb.UserData{}
+	ud := &tradingpb.UserData{}
 
 	err := proto.Unmarshal(buf, ud)
 	if err != nil {
@@ -44,7 +44,7 @@ func (core *ServiceCore) UnmarshalUserData(buf []byte) (proto.Message, error) {
 
 // NewUserData - new a userdata
 func (core *ServiceCore) NewUserData(ui *chatbotpb.UserInfo) (proto.Message, error) {
-	return &tradingdb2pb.UserData{}, nil
+	return &tradingpb.UserData{}, nil
 }
 
 // OnDebug - call in plugin.debug

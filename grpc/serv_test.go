@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	tradingdb2 "github.com/zhs007/tradingdb2"
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 )
 
 func Test_Serv(t *testing.T) {
@@ -26,14 +26,14 @@ func Test_Serv(t *testing.T) {
 	client0, err := NewClient("127.0.0.1:5002", "123")
 	assert.NoError(t, err)
 
-	candles := &tradingdb2pb.Candles{
+	candles := &tradingpb.Candles{
 		Market: "bitmex",
 		Symbol: "BTX",
 		Tag:    "20200101",
 	}
 
 	for i := 0; i < 100; i++ {
-		candles.Candles = append(candles.Candles, &tradingdb2pb.Candle{
+		candles.Candles = append(candles.Candles, &tradingpb.Candle{
 			Ts:   int64(i),
 			Open: 100 + int64(i),
 		})
@@ -79,14 +79,14 @@ func Test_Serv(t *testing.T) {
 	}
 
 	// 100 < 200
-	candles1 := &tradingdb2pb.Candles{
+	candles1 := &tradingpb.Candles{
 		Market: "bitmex",
 		Symbol: "BTX",
 		Tag:    "20200102",
 	}
 
 	for i := 0; i < 100; i++ {
-		candles1.Candles = append(candles1.Candles, &tradingdb2pb.Candle{
+		candles1.Candles = append(candles1.Candles, &tradingpb.Candle{
 			Ts:   int64(i),
 			Open: 100 + int64(i),
 		})
@@ -157,7 +157,7 @@ func Test_Serv(t *testing.T) {
 	assert.Equal(t, len(replygetcandles.Candles), 0)
 
 	// 0 < 200
-	candles2 := &tradingdb2pb.Candles{
+	candles2 := &tradingpb.Candles{
 		Market: "bitmex",
 		Symbol: "BTX",
 		Tag:    "20200103",
@@ -175,15 +175,15 @@ func Test_Serv(t *testing.T) {
 	// assert.Equal(t, replygetcandles.Tag, "20200103")
 	assert.Equal(t, len(replygetcandles.Candles), 0)
 
-	si := &tradingdb2pb.SymbolInfo{
+	si := &tradingpb.SymbolInfo{
 		Market: "cnfund",
 		Symbol: "240001",
-		Fund: &tradingdb2pb.Fund{
+		Fund: &tradingpb.Fund{
 			Code:       "240001",
 			Name:       "华宝宝康消费品",
 			Tags:       []string{"开放式", "混合型", "高风险"},
 			CreateTime: int64(123),
-			Size: []*tradingdb2pb.FundSize{&tradingdb2pb.FundSize{
+			Size: []*tradingpb.FundSize{&tradingpb.FundSize{
 				Size: 1.23,
 				Time: 123,
 			}},
@@ -217,7 +217,7 @@ func Test_Serv(t *testing.T) {
 	assert.Equal(t, replygetsymbol.Fund.Company, "华宝基金管理有限公司")
 
 	nums := 0
-	client1.GetSymbols(context.Background(), "cnfund", nil, func(si *tradingdb2pb.SymbolInfo) {
+	client1.GetSymbols(context.Background(), "cnfund", nil, func(si *tradingpb.SymbolInfo) {
 		nums++
 
 		assert.Equal(t, si.Fund.Code, "240001")

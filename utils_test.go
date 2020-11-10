@@ -4,19 +4,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 )
 
 func Test_SortCandles(t *testing.T) {
-	candles := &tradingdb2pb.Candles{
-		Candles: []*tradingdb2pb.Candle{
-			&tradingdb2pb.Candle{
+	candles := &tradingpb.Candles{
+		Candles: []*tradingpb.Candle{
+			&tradingpb.Candle{
 				Ts: 1,
 			},
-			&tradingdb2pb.Candle{
+			&tradingpb.Candle{
 				Ts: 3,
 			},
-			&tradingdb2pb.Candle{
+			&tradingpb.Candle{
 				Ts: 2,
 			},
 		},
@@ -29,7 +29,7 @@ func Test_SortCandles(t *testing.T) {
 	assert.Equal(t, candles.Candles[1].Ts, int64(2))
 	assert.Equal(t, candles.Candles[2].Ts, int64(3))
 
-	candles1 := &tradingdb2pb.Candles{}
+	candles1 := &tradingpb.Candles{}
 	SortCandles(candles1)
 	assert.Equal(t, len(candles1.Candles), 0)
 
@@ -37,15 +37,15 @@ func Test_SortCandles(t *testing.T) {
 }
 
 func Test_InsCandles(t *testing.T) {
-	candles := &tradingdb2pb.Candles{
-		Candles: []*tradingdb2pb.Candle{
-			&tradingdb2pb.Candle{
+	candles := &tradingpb.Candles{
+		Candles: []*tradingpb.Candle{
+			&tradingpb.Candle{
 				Ts: 10,
 			},
-			&tradingdb2pb.Candle{
+			&tradingpb.Candle{
 				Ts: 3,
 			},
-			&tradingdb2pb.Candle{
+			&tradingpb.Candle{
 				Ts: 2,
 			},
 		},
@@ -58,7 +58,7 @@ func Test_InsCandles(t *testing.T) {
 	assert.Equal(t, candles.Candles[1].Ts, int64(3))
 	assert.Equal(t, candles.Candles[2].Ts, int64(10))
 
-	InsCandles(candles, &tradingdb2pb.Candle{
+	InsCandles(candles, &tradingpb.Candle{
 		Ts: 10,
 	})
 
@@ -67,7 +67,7 @@ func Test_InsCandles(t *testing.T) {
 	assert.Equal(t, candles.Candles[1].Ts, int64(3))
 	assert.Equal(t, candles.Candles[2].Ts, int64(10))
 
-	InsCandles(candles, &tradingdb2pb.Candle{
+	InsCandles(candles, &tradingpb.Candle{
 		Ts: 11,
 	})
 
@@ -77,7 +77,7 @@ func Test_InsCandles(t *testing.T) {
 	assert.Equal(t, candles.Candles[2].Ts, int64(10))
 	assert.Equal(t, candles.Candles[3].Ts, int64(11))
 
-	InsCandles(candles, &tradingdb2pb.Candle{
+	InsCandles(candles, &tradingpb.Candle{
 		Ts: 1,
 	})
 
@@ -92,15 +92,15 @@ func Test_InsCandles(t *testing.T) {
 }
 
 func Test_MergeCandles(t *testing.T) {
-	candles := &tradingdb2pb.Candles{
-		Candles: []*tradingdb2pb.Candle{
-			&tradingdb2pb.Candle{
+	candles := &tradingpb.Candles{
+		Candles: []*tradingpb.Candle{
+			&tradingpb.Candle{
 				Ts: 10,
 			},
-			&tradingdb2pb.Candle{
+			&tradingpb.Candle{
 				Ts: 3,
 			},
-			&tradingdb2pb.Candle{
+			&tradingpb.Candle{
 				Ts: 2,
 			},
 		},
@@ -113,15 +113,15 @@ func Test_MergeCandles(t *testing.T) {
 	assert.Equal(t, candles.Candles[1].Ts, int64(3))
 	assert.Equal(t, candles.Candles[2].Ts, int64(10))
 
-	candles1 := &tradingdb2pb.Candles{
-		Candles: []*tradingdb2pb.Candle{
-			&tradingdb2pb.Candle{
+	candles1 := &tradingpb.Candles{
+		Candles: []*tradingpb.Candle{
+			&tradingpb.Candle{
 				Ts: 10,
 			},
-			&tradingdb2pb.Candle{
+			&tradingpb.Candle{
 				Ts: 11,
 			},
-			&tradingdb2pb.Candle{
+			&tradingpb.Candle{
 				Ts: 1,
 			},
 		},
@@ -140,17 +140,17 @@ func Test_MergeCandles(t *testing.T) {
 }
 
 func Test_BatchCandles(t *testing.T) {
-	candles := &tradingdb2pb.Candles{}
+	candles := &tradingpb.Candles{}
 
 	for i := 0; i < 100; i++ {
-		InsCandles(candles, &tradingdb2pb.Candle{
+		InsCandles(candles, &tradingpb.Candle{
 			Ts: int64(i),
 		})
 	}
 
 	start := int64(0)
 	lastnums := 100
-	BatchCandles(candles, 30, func(lst *tradingdb2pb.Candles) error {
+	BatchCandles(candles, 30, func(lst *tradingpb.Candles) error {
 		if lastnums >= 30 {
 			assert.Equal(t, len(lst.Candles), 30)
 		} else {

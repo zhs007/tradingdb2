@@ -5,24 +5,24 @@ import (
 	"io"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-// FuncOnGetSymbols - onGetSymbols(*tradingdb2pb.SymbolInfo)
-type FuncOnGetSymbols func(*tradingdb2pb.SymbolInfo)
+// FuncOnGetSymbols - onGetSymbols(*tradingpb.SymbolInfo)
+type FuncOnGetSymbols func(*tradingpb.SymbolInfo)
 
-// Client - TradingDB2ServiceClient
+// Client - TradingDB2Client
 type Client struct {
 	servAddr string
 	token    string
 	conn     *grpc.ClientConn
-	client   tradingdb2pb.TradingDB2ServiceClient
+	client   tradingpb.TradingDB2Client
 }
 
-// NewClient - new TradingDB2ServiceClient
+// NewClient - new TradingDB2Client
 func NewClient(servAddr string, token string) (*Client, error) {
 	client := &Client{
 		servAddr: servAddr,
@@ -43,8 +43,8 @@ func (client *Client) reset() {
 }
 
 // UpdCandles - update candles
-func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Candles, batchNums int, logger *zap.Logger) (
-	*tradingdb2pb.ReplyUpdCandles, error) {
+func (client *Client) UpdCandles(ctx context.Context, candles *tradingpb.Candles, batchNums int, logger *zap.Logger) (
+	*tradingpb.ReplyUpdCandles, error) {
 
 	if client.conn == nil || client.client == nil {
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
@@ -63,7 +63,7 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Cand
 		}
 
 		client.conn = conn
-		client.client = tradingdb2pb.NewTradingDB2ServiceClient(conn)
+		client.client = tradingpb.NewTradingDB2Client(conn)
 	}
 
 	stream, err := client.client.UpdCandles(ctx)
@@ -83,8 +83,8 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Cand
 	}
 
 	sentnums := 0
-	err = tradingdb2.BatchCandles(candles, batchNums, func(lst *tradingdb2pb.Candles) error {
-		cc := &tradingdb2pb.RequestUpdCandles{
+	err = tradingdb2.BatchCandles(candles, batchNums, func(lst *tradingpb.Candles) error {
+		cc := &tradingpb.RequestUpdCandles{
 			Token:   client.token,
 			Candles: lst,
 		}
@@ -146,7 +146,7 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingdb2pb.Cand
 
 // GetCandles - get candles
 func (client *Client) GetCandles(ctx context.Context, market string, symbol string, tags []string, tsStart int64, tsEnd int64, logger *zap.Logger) (
-	*tradingdb2pb.Candles, error) {
+	*tradingpb.Candles, error) {
 
 	if client.conn == nil || client.client == nil {
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
@@ -165,10 +165,10 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 		}
 
 		client.conn = conn
-		client.client = tradingdb2pb.NewTradingDB2ServiceClient(conn)
+		client.client = tradingpb.NewTradingDB2Client(conn)
 	}
 
-	stream, err := client.client.GetCandles(ctx, &tradingdb2pb.RequestGetCandles{
+	stream, err := client.client.GetCandles(ctx, &tradingpb.RequestGetCandles{
 		Token:   client.token,
 		Market:  market,
 		Symbol:  symbol,
@@ -191,7 +191,7 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 		return nil, err
 	}
 
-	candles := &tradingdb2pb.Candles{
+	candles := &tradingpb.Candles{
 		Market: market,
 		Symbol: symbol,
 	}
@@ -231,8 +231,8 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 }
 
 // UpdSymbol - update symbol
-func (client *Client) UpdSymbol(ctx context.Context, si *tradingdb2pb.SymbolInfo, logger *zap.Logger) (
-	*tradingdb2pb.ReplyUpdSymbol, error) {
+func (client *Client) UpdSymbol(ctx context.Context, si *tradingpb.SymbolInfo, logger *zap.Logger) (
+	*tradingpb.ReplyUpdSymbol, error) {
 
 	if client.conn == nil || client.client == nil {
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
@@ -251,10 +251,10 @@ func (client *Client) UpdSymbol(ctx context.Context, si *tradingdb2pb.SymbolInfo
 		}
 
 		client.conn = conn
-		client.client = tradingdb2pb.NewTradingDB2ServiceClient(conn)
+		client.client = tradingpb.NewTradingDB2Client(conn)
 	}
 
-	reply, err := client.client.UpdSymbol(ctx, &tradingdb2pb.RequestUpdSymbol{
+	reply, err := client.client.UpdSymbol(ctx, &tradingpb.RequestUpdSymbol{
 		Token:  client.token,
 		Symbol: si,
 	})
@@ -278,7 +278,7 @@ func (client *Client) UpdSymbol(ctx context.Context, si *tradingdb2pb.SymbolInfo
 
 // GetSymbol - get symbol
 func (client *Client) GetSymbol(ctx context.Context, market string, symbol string, logger *zap.Logger) (
-	*tradingdb2pb.SymbolInfo, error) {
+	*tradingpb.SymbolInfo, error) {
 
 	if client.conn == nil || client.client == nil {
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
@@ -297,10 +297,10 @@ func (client *Client) GetSymbol(ctx context.Context, market string, symbol strin
 		}
 
 		client.conn = conn
-		client.client = tradingdb2pb.NewTradingDB2ServiceClient(conn)
+		client.client = tradingpb.NewTradingDB2Client(conn)
 	}
 
-	reply, err := client.client.GetSymbol(ctx, &tradingdb2pb.RequestGetSymbol{
+	reply, err := client.client.GetSymbol(ctx, &tradingpb.RequestGetSymbol{
 		Token:  client.token,
 		Market: market,
 		Symbol: symbol,
@@ -343,10 +343,10 @@ func (client *Client) GetSymbols(ctx context.Context, market string, symbols []s
 		}
 
 		client.conn = conn
-		client.client = tradingdb2pb.NewTradingDB2ServiceClient(conn)
+		client.client = tradingpb.NewTradingDB2Client(conn)
 	}
 
-	stream, err := client.client.GetSymbols(ctx, &tradingdb2pb.RequestGetSymbols{
+	stream, err := client.client.GetSymbols(ctx, &tradingpb.RequestGetSymbols{
 		Token:   client.token,
 		Market:  market,
 		Symbols: symbols,
