@@ -6,28 +6,28 @@ import (
 	"context"
 
 	"github.com/stretchr/testify/assert"
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 )
 
 func Test_DB(t *testing.T) {
 	db, err := NewDB("./unittestdata", "", "leveldb")
 	assert.NoError(t, err)
 
-	err = db.UpdCandles(context.Background(), &tradingdb2pb.Candles{})
+	err = db.UpdCandles(context.Background(), &tradingpb.Candles{})
 	assert.Error(t, err)
 
-	err = db.UpdCandles(context.Background(), &tradingdb2pb.Candles{Market: "bitmex"})
+	err = db.UpdCandles(context.Background(), &tradingpb.Candles{Market: "bitmex"})
 	assert.Error(t, err)
 
-	err = db.UpdCandles(context.Background(), &tradingdb2pb.Candles{Market: "bitmex", Symbol: "BTX"})
+	err = db.UpdCandles(context.Background(), &tradingpb.Candles{Market: "bitmex", Symbol: "BTX"})
 	assert.Error(t, err)
 
-	err = db.UpdCandles(context.Background(), &tradingdb2pb.Candles{
+	err = db.UpdCandles(context.Background(), &tradingpb.Candles{
 		Market: "bitmex",
 		Symbol: "BTX",
 		Tag:    "20200101",
-		Candles: []*tradingdb2pb.Candle{
-			&tradingdb2pb.Candle{
+		Candles: []*tradingpb.Candle{
+			&tradingpb.Candle{
 				Open: 100,
 			},
 		},

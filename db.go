@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	ankadb "github.com/zhs007/ankadb"
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 )
 
@@ -61,7 +61,7 @@ func NewDB(dbpath string, httpAddr string, engine string) (*DB, error) {
 }
 
 // UpdCandles - update candles
-func (db *DB) UpdCandles(ctx context.Context, candles *tradingdb2pb.Candles) error {
+func (db *DB) UpdCandles(ctx context.Context, candles *tradingpb.Candles) error {
 	if candles.Market == "" {
 		return ErrInvalidMarket
 	}
@@ -89,7 +89,7 @@ func (db *DB) UpdCandles(ctx context.Context, candles *tradingdb2pb.Candles) err
 
 // GetCandles - get candles
 func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tags []string, tsStart int64, tsEnd int64) (
-	*tradingdb2pb.Candles, error) {
+	*tradingpb.Candles, error) {
 
 	if market == "" {
 		return nil, ErrInvalidMarket
@@ -99,7 +99,7 @@ func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tags
 		return nil, ErrInvalidSymbol
 	}
 
-	candles := &tradingdb2pb.Candles{
+	candles := &tradingpb.Candles{
 		Market: market,
 		Symbol: symbol,
 	}
@@ -109,7 +109,7 @@ func (db *DB) GetCandles(ctx context.Context, market string, symbol string, tags
 	}
 
 	err := db.AnkaDB.ForEachWithPrefix(ctx, dbname, makeCandlesDBKeyPrefix(market, symbol), func(key string, buf []byte) error {
-		cc := &tradingdb2pb.Candles{}
+		cc := &tradingpb.Candles{}
 
 		err := proto.Unmarshal(buf, cc)
 		if err != nil {
@@ -146,7 +146,7 @@ func (db *DB) GetAllData(ctx context.Context) (*TreeMapNode, error) {
 	root := NewTreeMapNode("root")
 
 	err := db.AnkaDB.ForEachWithPrefix(ctx, dbname, candlesKeyPrefix, func(key string, buf []byte) error {
-		candles := &tradingdb2pb.Candles{}
+		candles := &tradingpb.Candles{}
 
 		err := proto.Unmarshal(buf, candles)
 		if err != nil {
@@ -168,7 +168,7 @@ func (db *DB) GetAllData(ctx context.Context) (*TreeMapNode, error) {
 }
 
 // UpdSymbol - update symbol
-func (db *DB) UpdSymbol(ctx context.Context, si *tradingdb2pb.SymbolInfo) error {
+func (db *DB) UpdSymbol(ctx context.Context, si *tradingpb.SymbolInfo) error {
 	if si.Market == "" {
 		return ErrInvalidMarket
 	}
@@ -192,7 +192,7 @@ func (db *DB) UpdSymbol(ctx context.Context, si *tradingdb2pb.SymbolInfo) error 
 
 // GetSymbol - get symbol
 func (db *DB) GetSymbol(ctx context.Context, market string, symbol string) (
-	*tradingdb2pb.SymbolInfo, error) {
+	*tradingpb.SymbolInfo, error) {
 
 	if market == "" {
 		return nil, ErrInvalidMarket
@@ -211,7 +211,7 @@ func (db *DB) GetSymbol(ctx context.Context, market string, symbol string) (
 		return nil, err
 	}
 
-	si := &tradingdb2pb.SymbolInfo{}
+	si := &tradingpb.SymbolInfo{}
 
 	err = proto.Unmarshal(buf, si)
 	if err != nil {
@@ -229,7 +229,7 @@ func (db *DB) GetMarketSymbols(ctx context.Context, market string) ([]string, er
 
 	symbols := []string{}
 	err := db.AnkaDB.ForEachWithPrefix(ctx, dbname, makeSymbolDBKeyPrefix(market), func(key string, buf []byte) error {
-		si := &tradingdb2pb.SymbolInfo{}
+		si := &tradingpb.SymbolInfo{}
 
 		err := proto.Unmarshal(buf, si)
 		if err != nil {

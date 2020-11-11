@@ -9,7 +9,7 @@ import (
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
 	jsoniter "github.com/json-iterator/go"
 	excel "github.com/zhs007/adacore/excel"
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	"go.uber.org/zap"
 )
@@ -26,14 +26,14 @@ var fundsMember = []string{
 	"values",
 }
 
-func getSymbol(ctx context.Context, db *DB, market string, symbol string) (*tradingdb2pb.SymbolInfo, error) {
+func getSymbol(ctx context.Context, db *DB, market string, symbol string) (*tradingpb.SymbolInfo, error) {
 	curSymbol, err := db.GetSymbol(ctx, market, symbol)
 	if err != nil {
 		return nil, err
 	}
 
 	if curSymbol == nil {
-		curSymbol = &tradingdb2pb.SymbolInfo{
+		curSymbol = &tradingpb.SymbolInfo{
 			Market: market,
 			Symbol: symbol,
 		}

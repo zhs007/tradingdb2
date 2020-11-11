@@ -6,7 +6,7 @@ import (
 	"net"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	tradingdb2ver "github.com/zhs007/tradingdb2/ver"
 	"go.uber.org/zap"
@@ -49,7 +49,7 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 		Cfg:      cfg,
 	}
 
-	tradingdb2pb.RegisterTradingDB2ServiceServer(grpcServ, serv)
+	tradingpb.RegisterTradingDB2Server(grpcServ, serv)
 
 	tradingdb2utils.Info("NewServ OK.",
 		zap.String("addr", cfg.BindAddr),
@@ -71,8 +71,8 @@ func (serv *Serv) Stop() {
 }
 
 // UpdCandles - update candles
-func (serv *Serv) UpdCandles(stream tradingdb2pb.TradingDB2Service_UpdCandlesServer) error {
-	candles := &tradingdb2pb.Candles{}
+func (serv *Serv) UpdCandles(stream tradingpb.TradingDB2_UpdCandlesServer) error {
+	candles := &tradingpb.Candles{}
 	times := 0
 	// token := ""
 
@@ -127,7 +127,7 @@ func (serv *Serv) UpdCandles(stream tradingdb2pb.TradingDB2Service_UpdCandlesSer
 					return err
 				}
 
-				return stream.SendAndClose(&tradingdb2pb.ReplyUpdCandles{
+				return stream.SendAndClose(&tradingpb.ReplyUpdCandles{
 					LengthOK: int32(len(candles.Candles)),
 				})
 			}
@@ -143,7 +143,7 @@ func (serv *Serv) UpdCandles(stream tradingdb2pb.TradingDB2Service_UpdCandlesSer
 }
 
 // GetCandles - get candles
-func (serv *Serv) GetCandles(req *tradingdb2pb.RequestGetCandles, stream tradingdb2pb.TradingDB2Service_GetCandlesServer) error {
+func (serv *Serv) GetCandles(req *tradingpb.RequestGetCandles, stream tradingpb.TradingDB2_GetCandlesServer) error {
 	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
 		tradingdb2utils.Error("Serv.GetCandles:checkToken",
 			zap.String("token", req.Token),
@@ -171,8 +171,8 @@ func (serv *Serv) GetCandles(req *tradingdb2pb.RequestGetCandles, stream trading
 
 	// sentnums := 0
 
-	return tradingdb2.BatchCandles(candles, serv.Cfg.BatchCandleNums, func(lst *tradingdb2pb.Candles) error {
-		cc := &tradingdb2pb.ReplyGetCandles{
+	return tradingdb2.BatchCandles(candles, serv.Cfg.BatchCandleNums, func(lst *tradingpb.Candles) error {
+		cc := &tradingpb.ReplyGetCandles{
 			Candles: lst,
 		}
 
@@ -187,7 +187,7 @@ func (serv *Serv) GetCandles(req *tradingdb2pb.RequestGetCandles, stream trading
 }
 
 // UpdSymbol - update symbol
-func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingdb2pb.RequestUpdSymbol) (*tradingdb2pb.ReplyUpdSymbol, error) {
+func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingpb.RequestUpdSymbol) (*tradingpb.ReplyUpdSymbol, error) {
 	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
 		tradingdb2utils.Error("Serv.UpdSymbol:checkToken",
 			zap.String("token", req.Token),
@@ -219,7 +219,7 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingdb2pb.RequestUpdSym
 		return nil, err
 	}
 
-	res := &tradingdb2pb.ReplyUpdSymbol{
+	res := &tradingpb.ReplyUpdSymbol{
 		IsOK: true,
 	}
 
@@ -227,7 +227,7 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingdb2pb.RequestUpdSym
 }
 
 // GetSymbol - get symbol
-func (serv *Serv) GetSymbol(ctx context.Context, req *tradingdb2pb.RequestGetSymbol) (*tradingdb2pb.ReplyGetSymbol, error) {
+func (serv *Serv) GetSymbol(ctx context.Context, req *tradingpb.RequestGetSymbol) (*tradingpb.ReplyGetSymbol, error) {
 	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
 		tradingdb2utils.Error("Serv.GetSymbol:checkToken",
 			zap.String("token", req.Token),
@@ -247,7 +247,7 @@ func (serv *Serv) GetSymbol(ctx context.Context, req *tradingdb2pb.RequestGetSym
 		return nil, err
 	}
 
-	res := &tradingdb2pb.ReplyGetSymbol{
+	res := &tradingpb.ReplyGetSymbol{
 		Symbol: si,
 	}
 
@@ -255,7 +255,7 @@ func (serv *Serv) GetSymbol(ctx context.Context, req *tradingdb2pb.RequestGetSym
 }
 
 // GetSymbols - get symbols
-func (serv *Serv) GetSymbols(req *tradingdb2pb.RequestGetSymbols, stream tradingdb2pb.TradingDB2Service_GetSymbolsServer) error {
+func (serv *Serv) GetSymbols(req *tradingpb.RequestGetSymbols, stream tradingpb.TradingDB2_GetSymbolsServer) error {
 	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
 		tradingdb2utils.Error("Serv.GetSymbols:checkToken",
 			zap.String("token", req.Token),
@@ -293,7 +293,7 @@ func (serv *Serv) GetSymbols(req *tradingdb2pb.RequestGetSymbols, stream trading
 		}
 
 		if si != nil {
-			res := &tradingdb2pb.ReplyGetSymbol{
+			res := &tradingpb.ReplyGetSymbol{
 				Symbol: si,
 			}
 

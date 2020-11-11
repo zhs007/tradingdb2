@@ -4,25 +4,25 @@ import (
 	"math"
 	"sort"
 
-	tradingdb2pb "github.com/zhs007/tradingdb2/tradingdb2pb"
+	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 )
 
 // SortCandles - sort Candles
-func SortCandles(candles *tradingdb2pb.Candles) {
+func SortCandles(candles *tradingpb.Candles) {
 	sort.Slice(candles.Candles, func(i, j int) bool {
 		return candles.Candles[i].Ts < candles.Candles[j].Ts
 	})
 }
 
 // InsCandles - insert a candle into candles, sort by ts
-func InsCandles(candles *tradingdb2pb.Candles, candle *tradingdb2pb.Candle) {
+func InsCandles(candles *tradingpb.Candles, candle *tradingpb.Candle) {
 	for i, v := range candles.Candles {
 		if v.Ts == candle.Ts {
 			return
 		}
 
 		if candle.Ts < v.Ts {
-			candles.Candles = append(candles.Candles[:i], append([]*tradingdb2pb.Candle{candle}, candles.Candles[i:]...)...)
+			candles.Candles = append(candles.Candles[:i], append([]*tradingpb.Candle{candle}, candles.Candles[i:]...)...)
 
 			return
 		}
@@ -32,19 +32,19 @@ func InsCandles(candles *tradingdb2pb.Candles, candle *tradingdb2pb.Candle) {
 }
 
 // MergeCandles - merge Candles, candles is a sorted candles
-func MergeCandles(candles *tradingdb2pb.Candles, src *tradingdb2pb.Candles) {
+func MergeCandles(candles *tradingpb.Candles, src *tradingpb.Candles) {
 	for _, v := range src.Candles {
 		InsCandles(candles, v)
 	}
 }
 
 // FuncOnBatchCandles - used in BatchCandles
-type FuncOnBatchCandles func(candles *tradingdb2pb.Candles) error
+type FuncOnBatchCandles func(candles *tradingpb.Candles) error
 
 // BatchCandles - batch candles
-func BatchCandles(candles *tradingdb2pb.Candles, nums int, onBatch FuncOnBatchCandles) error {
+func BatchCandles(candles *tradingpb.Candles, nums int, onBatch FuncOnBatchCandles) error {
 	if len(candles.Candles) == 0 {
-		err := onBatch(&tradingdb2pb.Candles{})
+		err := onBatch(&tradingpb.Candles{})
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ func BatchCandles(candles *tradingdb2pb.Candles, nums int, onBatch FuncOnBatchCa
 			curlen = len(candles.Candles) - i
 		}
 
-		err := onBatch(&tradingdb2pb.Candles{
+		err := onBatch(&tradingpb.Candles{
 			Candles: candles.Candles[i : i+curlen],
 		})
 		if err != nil {
@@ -69,7 +69,7 @@ func BatchCandles(candles *tradingdb2pb.Candles, nums int, onBatch FuncOnBatchCa
 	return nil
 }
 
-func insFundSize(fund *tradingdb2pb.Fund, fs *tradingdb2pb.FundSize) {
+func insFundSize(fund *tradingpb.Fund, fs *tradingpb.FundSize) {
 	if len(fund.Size) == 0 {
 		fund.Size = append(fund.Size, fs)
 
@@ -82,7 +82,7 @@ func insFundSize(fund *tradingdb2pb.Fund, fs *tradingdb2pb.FundSize) {
 	}
 }
 
-func insFundResult(fund *tradingdb2pb.Fund, fr *tradingdb2pb.FundResult) {
+func insFundResult(fund *tradingpb.Fund, fr *tradingpb.FundResult) {
 	for _, v := range fund.Results {
 		if v.Name == fr.Name && v.StartTime == fr.StartTime && v.EndTime == fr.EndTime {
 			return
@@ -93,7 +93,7 @@ func insFundResult(fund *tradingdb2pb.Fund, fr *tradingdb2pb.FundResult) {
 }
 
 // MergeFund - merge fund
-func MergeFund(fund0 *tradingdb2pb.Fund, fund1 *tradingdb2pb.Fund) *tradingdb2pb.Fund {
+func MergeFund(fund0 *tradingpb.Fund, fund1 *tradingpb.Fund) *tradingpb.Fund {
 	if fund1.Code != "" {
 		fund0.Code = fund1.Code
 	}
@@ -130,7 +130,7 @@ func MergeFund(fund0 *tradingdb2pb.Fund, fund1 *tradingdb2pb.Fund) *tradingdb2pb
 }
 
 // FixFundResult - fix
-func FixFundResult(fr *tradingdb2pb.FundResult) {
+func FixFundResult(fr *tradingpb.FundResult) {
 	if math.IsNaN(float64(fr.MaxDrawdown)) {
 		fr.MaxDrawdown = 0
 	}
@@ -153,14 +153,14 @@ func FixFundResult(fr *tradingdb2pb.FundResult) {
 }
 
 // FixFundManager - fix
-func FixFundManager(fm *tradingdb2pb.FundManager) {
+func FixFundManager(fm *tradingpb.FundManager) {
 	for _, v := range fm.Results {
 		FixFundResult(v)
 	}
 }
 
 // FixFundManagers - fix
-func FixFundManagers(fms []*tradingdb2pb.FundManager) {
+func FixFundManagers(fms []*tradingpb.FundManager) {
 	for _, v := range fms {
 		FixFundManager(v)
 	}
