@@ -70,24 +70,33 @@ func (serv *Serv) Stop() {
 	return
 }
 
+// checkBasicRequest - check BasicRequest
+func (serv *Serv) checkBasicRequest(req *tradingpb.BasicRequestData) error {
+	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+		return tradingdb2.ErrInvalidToken
+	}
+
+	return nil
+}
+
 // UpdCandles - update candles
 func (serv *Serv) UpdCandles(stream tradingpb.TradingDB2_UpdCandlesServer) error {
 	candles := &tradingpb.Candles{}
 	times := 0
-	// token := ""
 
 	for {
 		req, err := stream.Recv()
 		if req != nil && (err == nil || err == io.EOF) {
 			if times == 0 {
-				if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+				err = serv.checkBasicRequest(req.BasicRequest)
+				if err != nil {
 					tradingdb2utils.Error("Serv.UpdCandles:Token",
 						zap.Int("length", len(candles.Candles)),
 						zap.Int("times", times),
 						zap.String("token", req.Token),
-						zap.Error(tradingdb2.ErrInvalidToken))
+						zap.Error(err))
 
-					return tradingdb2.ErrInvalidToken
+					return err
 				}
 
 				if req.Candles.Market == "" ||
@@ -144,13 +153,14 @@ func (serv *Serv) UpdCandles(stream tradingpb.TradingDB2_UpdCandlesServer) error
 
 // GetCandles - get candles
 func (serv *Serv) GetCandles(req *tradingpb.RequestGetCandles, stream tradingpb.TradingDB2_GetCandlesServer) error {
-	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+	err := serv.checkBasicRequest(req.BasicRequest)
+	if err != nil {
 		tradingdb2utils.Error("Serv.GetCandles:checkToken",
 			zap.String("token", req.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
-			zap.Error(tradingdb2.ErrInvalidToken))
+			zap.Error(err))
 
-		return tradingdb2.ErrInvalidToken
+		return err
 	}
 
 	var tags []string
@@ -188,13 +198,14 @@ func (serv *Serv) GetCandles(req *tradingpb.RequestGetCandles, stream tradingpb.
 
 // UpdSymbol - update symbol
 func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingpb.RequestUpdSymbol) (*tradingpb.ReplyUpdSymbol, error) {
-	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+	err := serv.checkBasicRequest(req.BasicRequest)
+	if err != nil {
 		tradingdb2utils.Error("Serv.UpdSymbol:checkToken",
 			zap.String("token", req.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
-			zap.Error(tradingdb2.ErrInvalidToken))
+			zap.Error(err))
 
-		return nil, tradingdb2.ErrInvalidToken
+		return nil, err
 	}
 
 	symbol, err := serv.DB.GetSymbol(ctx, req.Symbol.Market, req.Symbol.Symbol)
@@ -228,13 +239,14 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingpb.RequestUpdSymbol
 
 // GetSymbol - get symbol
 func (serv *Serv) GetSymbol(ctx context.Context, req *tradingpb.RequestGetSymbol) (*tradingpb.ReplyGetSymbol, error) {
-	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+	err := serv.checkBasicRequest(req.BasicRequest)
+	if err != nil {
 		tradingdb2utils.Error("Serv.GetSymbol:checkToken",
 			zap.String("token", req.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
-			zap.Error(tradingdb2.ErrInvalidToken))
+			zap.Error(err))
 
-		return nil, tradingdb2.ErrInvalidToken
+		return nil, err
 	}
 
 	si, err := serv.DB.GetSymbol(ctx, req.Market, req.Symbol)
@@ -256,13 +268,14 @@ func (serv *Serv) GetSymbol(ctx context.Context, req *tradingpb.RequestGetSymbol
 
 // GetSymbols - get symbols
 func (serv *Serv) GetSymbols(req *tradingpb.RequestGetSymbols, stream tradingpb.TradingDB2_GetSymbolsServer) error {
-	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+	err := serv.checkBasicRequest(req.BasicRequest)
+	if err != nil {
 		tradingdb2utils.Error("Serv.GetSymbols:checkToken",
 			zap.String("token", req.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
-			zap.Error(tradingdb2.ErrInvalidToken))
+			zap.Error(err))
 
-		return tradingdb2.ErrInvalidToken
+		return err
 	}
 
 	var symbols []string
