@@ -3,6 +3,17 @@ package tradingpb;
 option go_package = "github.com/zhs007/tradingdb2/tradingpb";
 import "trading2.proto";
 
+// WalletAsset - wallet asset
+message WalletAsset {
+    Asset asset = 1;
+    double value = 2;
+}
+
+// Wallet - wallet
+message Wallet {
+    repeated WalletAsset assets = 1;
+}
+
 // CtrlCondition - control condition
 message CtrlCondition {
     string indicator = 1;
@@ -24,6 +35,7 @@ message Strategy {
 message PNLDataValue {
     int64 ts = 1;
     float value = 2;
+    repeated string tags = 3;
 }
 
 // PNLData - 
@@ -81,6 +93,7 @@ message RequestCalcPNL {
     int64 startTs = 4;
     int64 endTs = 5;
     repeated Strategy strategies = 6;
+    Wallet wallet = 7;
 }
 
 // ReplyCalcPNL - reply calcPNL
