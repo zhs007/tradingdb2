@@ -85,8 +85,10 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingpb.Candles
 	sentnums := 0
 	err = tradingdb2.BatchCandles(candles, batchNums, func(lst *tradingpb.Candles) error {
 		cc := &tradingpb.RequestUpdCandles{
-			Token:   client.token,
 			Candles: lst,
+			BasicRequest: &tradingpb.BasicRequestData{
+				Token: client.token,
+			},
 		}
 
 		if sentnums == 0 {
@@ -169,12 +171,14 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 	}
 
 	stream, err := client.client.GetCandles(ctx, &tradingpb.RequestGetCandles{
-		Token:   client.token,
 		Market:  market,
 		Symbol:  symbol,
 		Tags:    tags,
 		TsStart: tsStart,
 		TsEnd:   tsEnd,
+		BasicRequest: &tradingpb.BasicRequestData{
+			Token: client.token,
+		},
 	})
 	if err != nil {
 		if logger != nil {
@@ -255,8 +259,10 @@ func (client *Client) UpdSymbol(ctx context.Context, si *tradingpb.SymbolInfo, l
 	}
 
 	reply, err := client.client.UpdSymbol(ctx, &tradingpb.RequestUpdSymbol{
-		Token:  client.token,
 		Symbol: si,
+		BasicRequest: &tradingpb.BasicRequestData{
+			Token: client.token,
+		},
 	})
 	if err != nil {
 		if logger != nil {
@@ -301,9 +307,11 @@ func (client *Client) GetSymbol(ctx context.Context, market string, symbol strin
 	}
 
 	reply, err := client.client.GetSymbol(ctx, &tradingpb.RequestGetSymbol{
-		Token:  client.token,
 		Market: market,
 		Symbol: symbol,
+		BasicRequest: &tradingpb.BasicRequestData{
+			Token: client.token,
+		},
 	})
 	if err != nil {
 		if logger != nil {
@@ -347,9 +355,11 @@ func (client *Client) GetSymbols(ctx context.Context, market string, symbols []s
 	}
 
 	stream, err := client.client.GetSymbols(ctx, &tradingpb.RequestGetSymbols{
-		Token:   client.token,
 		Market:  market,
 		Symbols: symbols,
+		BasicRequest: &tradingpb.BasicRequestData{
+			Token: client.token,
+		},
 	})
 	if err != nil {
 		if logger != nil {
