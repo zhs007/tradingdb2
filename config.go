@@ -6,17 +6,24 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// TrNode2Cfg -
+type TrNode2Cfg struct {
+	Host  string `yaml:"host"`
+	Token string `yaml:"token"`
+}
+
 // Config -
 type Config struct {
-	BatchCandleNums int      `yaml:"batchcandlenums"`
-	DBPath          string   `yaml:"dbpath"`
-	DBEngine        string   `yaml:"dbengine"`
-	BindAddr        string   `yaml:"bindaddr"`
-	LogLevel        string   `yaml:"loglevel"`
-	LogPath         string   `yaml:"logpath"`
-	Tokens          []string `yaml:"tokens"`
-	DataPath        string   `yaml:"datapath"`
-	DataURL         string   `yaml:"dataurl"`
+	BatchCandleNums int          `yaml:"batchcandlenums"`
+	DBPath          string       `yaml:"dbpath"`
+	DBEngine        string       `yaml:"dbengine"`
+	BindAddr        string       `yaml:"bindaddr"`
+	LogLevel        string       `yaml:"loglevel"`
+	LogPath         string       `yaml:"logpath"`
+	Tokens          []string     `yaml:"tokens"`
+	DataPath        string       `yaml:"datapath"`
+	DataURL         string       `yaml:"dataurl"`
+	Nodes           []TrNode2Cfg `yaml:"trnode2"`
 }
 
 // LoadConfig - load config

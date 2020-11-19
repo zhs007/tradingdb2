@@ -18,6 +18,9 @@ func Test_LoadConfig(t *testing.T) {
 	assert.Equal(t, cfg.LogLevel, "debug")
 	assert.Equal(t, len(cfg.Tokens), 1)
 	assert.Equal(t, cfg.Tokens[0], "wzDkh9h2fhfUVuS9jZ8uVbhV3vC5AWX3")
+	assert.Equal(t, len(cfg.Nodes), 1)
+	assert.Equal(t, cfg.Nodes[0].Host, "127.0.0.1:123")
+	assert.Equal(t, cfg.Nodes[0].Token, "123456")
 
 	cfg, err = LoadConfig("./cfg/config.yaml.default0")
 	assert.Error(t, err)
