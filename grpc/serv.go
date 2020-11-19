@@ -19,6 +19,7 @@ type Serv struct {
 	grpcServ *grpc.Server
 	DB       *tradingdb2.DB
 	Cfg      *tradingdb2.Config
+	MgrNodes *Node2Mgr
 }
 
 // NewServ -
@@ -322,4 +323,24 @@ func (serv *Serv) GetSymbols(req *tradingpb.RequestGetSymbols, stream tradingpb.
 	}
 
 	return nil
+}
+
+// SimTrading - simTrading
+func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTrading) (*tradingpb.ReplySimTrading, error) {
+	err := serv.checkBasicRequest(req.BasicRequest)
+	if err != nil {
+		tradingdb2utils.Error("Serv.SimTrading:checkToken",
+			zap.String("token", req.BasicRequest.Token),
+			zap.Strings("tokens", serv.Cfg.Tokens),
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	reply, err := serv.MgrNodes.CalcPNL(ctx, req.Params, nil)
+	res := &tradingpb.ReplySimTrading{
+		Pnl: reply.Pnl,
+	}
+
+	return res, nil
 }

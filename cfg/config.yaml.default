@@ -15,3 +15,7 @@ tokens:
   - wzDkh9h2fhfUVuS9jZ8uVbhV3vC5AWX3
 datapath: ./output
 dataurl: http://127.0.0.1/
+# tradingnode2 nodes
+trnode2:
+  - host: 127.0.0.1:123
+    token: 123456
