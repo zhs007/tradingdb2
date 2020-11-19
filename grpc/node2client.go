@@ -2,6 +2,7 @@ package tradingdb2grpc
 
 import (
 	"context"
+	"time"
 
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
@@ -16,6 +17,7 @@ type Node2Client struct {
 	conn         *grpc.ClientConn
 	client       tradingpb.TradingNode2Client
 	lastTaskNums int
+	lastTs       int64
 }
 
 // NewNode2Client - new TradingNode2Client
@@ -94,6 +96,15 @@ func (client *Node2Client) GetServerInfo(ctx context.Context, logger *zap.Logger
 
 // CalcPNL - calcPNL
 func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
+	if client.lastTaskNums <= 0 {
+		if time.Now().Unix()-client.lastTs < TradingNode2RequestOffTime {
+			return nil, ErrNodeNotFree
+		}
+	}
+
+	client.lastTaskNums--
+	client.lastTs = time.Now().Unix()
+
 	if client.conn == nil || client.client == nil {
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
 		if err != nil {
@@ -136,6 +147,8 @@ func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTra
 
 		return nil, err
 	}
+
+	client.lastTaskNums = int(reply.NodeInfo.MaxTasks - reply.NodeInfo.CurTasks)
 
 	return reply, nil
 }
