@@ -43,11 +43,20 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 
 	grpcServ := grpc.NewServer()
 
+	mgrNodes, err := NewNode2Mgr(cfg)
+	if err != nil {
+		tradingdb2utils.Error("NewServ.NewNode2Mgr",
+			zap.Error(err))
+
+		return nil, err
+	}
+
 	serv := &Serv{
 		lis:      lis,
 		grpcServ: grpcServ,
 		DB:       db,
 		Cfg:      cfg,
+		MgrNodes: mgrNodes,
 	}
 
 	tradingpb.RegisterTradingDB2Server(grpcServ, serv)
