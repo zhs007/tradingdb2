@@ -2,6 +2,7 @@ package tradingdb2grpc
 
 import (
 	"context"
+	"time"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
 	"github.com/zhs007/tradingdb2/tradingpb"
@@ -50,12 +51,24 @@ func (mgr *Node2Mgr) getFreeClient() *Node2Client {
 // CalcPNL - calcPNL
 func (mgr *Node2Mgr) CalcPNL(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
 	var cn *Node2Client
+	ts := time.Now().Unix()
 	for {
 		cn = mgr.getFreeClient()
 		if cn != nil {
 			break
 		}
+
+		time.Sleep(time.Second)
+
+		curts := time.Now().Unix()
+		if curts-ts > WaitTradingNode2Time {
+			break
+		}
 	}
 
-	return cn.CalcPNL(ctx, params, logger)
+	if cn != nil {
+		return cn.CalcPNL(ctx, params, logger)
+	}
+
+	return nil, ErrNodeNotFree
 }
