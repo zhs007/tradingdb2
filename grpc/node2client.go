@@ -148,7 +148,9 @@ func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTra
 		return nil, err
 	}
 
-	client.lastTaskNums = int(reply.NodeInfo.MaxTasks - reply.NodeInfo.CurTasks)
+	if reply.NodeInfo != nil {
+		client.lastTaskNums = int(reply.NodeInfo.MaxTasks - reply.NodeInfo.CurTasks)
+	}
 
 	return reply, nil
 }
