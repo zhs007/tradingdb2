@@ -347,6 +347,13 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 	}
 
 	reply, err := serv.MgrNodes.CalcPNL(ctx, req.Params, nil)
+	if err != nil {
+		tradingdb2utils.Error("Serv.SimTrading:CalcPNL",
+			zap.Error(err))
+
+		return nil, err
+	}
+
 	res := &tradingpb.ReplySimTrading{
 		Pnl: reply.Pnl,
 	}
