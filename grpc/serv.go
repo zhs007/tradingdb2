@@ -346,6 +346,22 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		return nil, err
 	}
 
+	res := &tradingpb.ReplySimTrading{}
+
+	for _, v := range req.Params.Baselines {
+		bp := GenCalcBaseline(v, req.Params.StartTs, req.Params.EndTs)
+		br, err := serv.MgrNodes.CalcPNL(ctx, bp, nil)
+		if err != nil {
+			tradingdb2utils.Error("Serv.SimTrading:CalcPNL baseline",
+				tradingdb2utils.JSON("parameter", bp),
+				zap.Error(err))
+
+			return nil, err
+		}
+
+		res.Baseline = append(res.Baseline, br.Pnl...)
+	}
+
 	reply, err := serv.MgrNodes.CalcPNL(ctx, req.Params, nil)
 	if err != nil {
 		tradingdb2utils.Error("Serv.SimTrading:CalcPNL",
@@ -364,9 +380,7 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 	// 	}
 	// }
 
-	res := &tradingpb.ReplySimTrading{
-		Pnl: reply.Pnl,
-	}
+	res.Pnl = reply.Pnl
 
 	return res, nil
 }
