@@ -7,8 +7,11 @@ import (
 // GenCalcBaseline - generator SimTradingParams for baseline
 func GenCalcBaseline(asset *tradingpb.Asset, startTs int64, endTs int64) *tradingpb.SimTradingParams {
 	pmbuy := &tradingpb.BuyParams{
-		InitMoney: 10000,
-		PerMoney:  1,
+		PerInitMoney: 1,
+	}
+
+	pminit := &tradingpb.InitParams{
+		Money: 10000,
 	}
 
 	ccbuy := &tradingpb.CtrlCondition{
@@ -16,10 +19,11 @@ func GenCalcBaseline(asset *tradingpb.Asset, startTs int64, endTs int64) *tradin
 	}
 
 	strategy := &tradingpb.Strategy{
-		Name:      "bah",
-		Asset:     asset,
-		Buy:       []*tradingpb.CtrlCondition{ccbuy},
-		ParamsBuy: pmbuy,
+		Name:       "bah",
+		Asset:      asset,
+		Buy:        []*tradingpb.CtrlCondition{ccbuy},
+		ParamsBuy:  pmbuy,
+		ParamsInit: pminit,
 	}
 
 	params := &tradingpb.SimTradingParams{
