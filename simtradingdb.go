@@ -51,9 +51,9 @@ func NewSimTradingDB(dbpath string, httpAddr string, engine string) (*SimTrading
 
 // UpdSimTrading - update simulation trading
 func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.SimTradingParams, pnldata *tradingpb.PNLData) error {
-	cache, err := db.GetSimTradingNodes(ctx, params)
+	cache, err := db.getSimTradingNodes(ctx, params)
 	if err != nil {
-		tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:GetSimTradingNodes",
+		tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:getSimTradingNodes",
 			zap.Error(err))
 
 		return err
@@ -66,7 +66,13 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 	for _, v := range cache.Nodes {
 		if db.isSameSimTradingParams(params, v.Params) {
 			v.LastTs = time.Now().Unix()
-			return db.UpdSimTradingNodes(ctx, params, cache)
+			err = db.updSimTradingNodes(ctx, params, cache)
+			if err != nil {
+				tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:isSameSimTradingParams updSimTradingNodes",
+					zap.Error(err))
+
+				return err
+			}
 		}
 	}
 
@@ -85,9 +91,9 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 
 	cache.Nodes = append(cache.Nodes, node)
 
-	err = db.UpdSimTradingNodes(ctx, params, cache)
+	err = db.updSimTradingNodes(ctx, params, cache)
 	if err != nil {
-		tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:UpdSimTradingNodes",
+		tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:updSimTradingNodes",
 			zap.Error(err))
 
 		return err
@@ -108,32 +114,40 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.SimTradingParams) (
 	*tradingpb.PNLData, error) {
 
-	cache, err := db.GetSimTradingNodes(ctx, params)
+	tradingdb2utils.Debug("SimTradingDB.GetSimTrading",
+		tradingdb2utils.JSON("params", params))
+
+	cache, err := db.getSimTradingNodes(ctx, params)
 	if err != nil {
-		tradingdb2utils.Warn("SimTradingDB.GetSimTrading:GetSimTradingNodes",
+		tradingdb2utils.Warn("SimTradingDB.GetSimTrading:getSimTradingNodes",
 			zap.Error(err))
 
 		return nil, err
 	}
 
 	if cache == nil {
+		tradingdb2utils.Debug("SimTradingDB.GetSimTrading:no cache")
+
 		return nil, nil
 	}
 
 	for _, v := range cache.Nodes {
 		if db.isSameSimTradingParams(params, v.Params) {
 			v.LastTs = time.Now().Unix()
-			db.UpdSimTradingNodes(ctx, params, cache)
+			db.updSimTradingNodes(ctx, params, cache)
 
 			return db.getPNLData(ctx, v.Key)
 		}
+
+		tradingdb2utils.Debug("SimTradingDB.GetSimTrading:isSameSimTradingParams",
+			tradingdb2utils.JSON("v", v))
 	}
 
 	return nil, nil
 }
 
-// GetSimTradingNodes - get simtrading nodes
-func (db *SimTradingDB) GetSimTradingNodes(ctx context.Context, params *tradingpb.SimTradingParams) (
+// getSimTradingNodes - get simtrading nodes
+func (db *SimTradingDB) getSimTradingNodes(ctx context.Context, params *tradingpb.SimTradingParams) (
 	*tradingpb.SimTradingCache, error) {
 
 	key := makeSimTradingNodesDBKey(params.Strategies[0].Name, params.Assets[0].Market, params.Assets[0].Code, params.StartTs, params.EndTs)
@@ -144,7 +158,7 @@ func (db *SimTradingDB) GetSimTradingNodes(ctx context.Context, params *tradingp
 			return nil, nil
 		}
 
-		tradingdb2utils.Warn("SimTradingDB.GetSimTradingNodes:Get",
+		tradingdb2utils.Warn("SimTradingDB.getSimTradingNodes:Get",
 			zap.Error(err))
 
 		return nil, err
@@ -160,8 +174,8 @@ func (db *SimTradingDB) GetSimTradingNodes(ctx context.Context, params *tradingp
 	return cache, nil
 }
 
-// UpdSimTradingNodes - update simtrading nodes
-func (db *SimTradingDB) UpdSimTradingNodes(ctx context.Context, params *tradingpb.SimTradingParams, cache *tradingpb.SimTradingCache) error {
+// updSimTradingNodes - update simtrading nodes
+func (db *SimTradingDB) updSimTradingNodes(ctx context.Context, params *tradingpb.SimTradingParams, cache *tradingpb.SimTradingCache) error {
 	key := makeSimTradingNodesDBKey(params.Strategies[0].Name, params.Assets[0].Market, params.Assets[0].Code, params.StartTs, params.EndTs)
 
 	buf, err := proto.Marshal(cache)
@@ -190,34 +204,6 @@ func (db *SimTradingDB) isSameSimTradingParams(v0 *tradingpb.SimTradingParams, v
 
 	return true
 }
-
-// // GetPNLData - get simtrading PNLData
-// func (db *SimTradingDB) GetPNLData(ctx context.Context, params *tradingpb.SimTradingParams) (
-// 	*tradingpb.PNLData, error) {
-
-// 	cache, err := db.GetSimTradingNodes(ctx, params)
-// 	if err != nil {
-// 		tradingdb2utils.Warn("SimTradingDB.GetPNLData:GetSimTradingNodes",
-// 			zap.Error(err))
-
-// 		return nil, err
-// 	}
-
-// 	if cache == nil {
-// 		return nil, nil
-// 	}
-
-// 	for _, v := range cache.Nodes {
-// 		if db.isSameSimTradingParams(params, v.Params) {
-// 			v.LastTs = time.Now().Unix()
-// 			db.UpdSimTradingNodes(ctx, params, cache)
-
-// 			return db.getPNLData(ctx, v.Key)
-// 		}
-// 	}
-
-// 	return nil, nil
-// }
 
 // getPNLData - get candles
 func (db *SimTradingDB) getPNLData(ctx context.Context, key string) (
