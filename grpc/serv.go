@@ -346,6 +346,9 @@ func (serv *Serv) GetSymbols(req *tradingpb.RequestGetSymbols, stream tradingpb.
 
 // SimTrading - simTrading
 func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTrading) (*tradingpb.ReplySimTrading, error) {
+	tradingdb2utils.Info("Serv.SimTrading",
+		tradingdb2utils.JSON("request", req))
+
 	err := serv.checkBasicRequest(req.BasicRequest)
 	if err != nil {
 		tradingdb2utils.Error("Serv.SimTrading:checkToken",
