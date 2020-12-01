@@ -15,11 +15,12 @@ import (
 
 // Serv - tradingdb2 Service
 type Serv struct {
-	lis      net.Listener
-	grpcServ *grpc.Server
-	DB       *tradingdb2.DB
-	Cfg      *tradingdb2.Config
-	MgrNodes *Node2Mgr
+	lis          net.Listener
+	grpcServ     *grpc.Server
+	DB           *tradingdb2.DB
+	Cfg          *tradingdb2.Config
+	DBSimTrading *tradingdb2.SimTradingDB
+	MgrNodes     *Node2Mgr
 }
 
 // NewServ -
@@ -28,6 +29,14 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 	db, err := tradingdb2.NewDB(cfg.DBPath, "", cfg.DBEngine)
 	if err != nil {
 		tradingdb2utils.Error("NewServ.NewDB",
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	dbSimTrading, err := tradingdb2.NewSimTradingDB(cfg.DBPath, "", cfg.DBEngine)
+	if err != nil {
+		tradingdb2utils.Error("NewServ.NewSimTradingDB",
 			zap.Error(err))
 
 		return nil, err
@@ -52,11 +61,12 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 	}
 
 	serv := &Serv{
-		lis:      lis,
-		grpcServ: grpcServ,
-		DB:       db,
-		Cfg:      cfg,
-		MgrNodes: mgrNodes,
+		lis:          lis,
+		grpcServ:     grpcServ,
+		DB:           db,
+		DBSimTrading: dbSimTrading,
+		Cfg:          cfg,
+		MgrNodes:     mgrNodes,
 	}
 
 	tradingpb.RegisterTradingDB2Server(grpcServ, serv)
@@ -346,10 +356,34 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		return nil, err
 	}
 
+	params, err := serv.DB.FixSimTradingParams(ctx, req.Params)
+	if err != nil {
+		tradingdb2utils.Error("Serv.SimTrading:FixSimTradingParams",
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	pnl, err := serv.DBSimTrading.GetSimTrading(ctx, params)
+	if err != nil {
+		tradingdb2utils.Error("Serv.SimTrading:GetSimTrading",
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	if pnl != nil {
+		return &tradingpb.ReplySimTrading{
+			Pnl: []*tradingpb.PNLData{
+				pnl,
+			},
+		}, nil
+	}
+
 	res := &tradingpb.ReplySimTrading{}
 
-	for _, v := range req.Params.Baselines {
-		bp := GenCalcBaseline(v, req.Params.StartTs, req.Params.EndTs)
+	for _, v := range params.Baselines {
+		bp := GenCalcBaseline(v, params.StartTs, params.EndTs)
 		br, err := serv.MgrNodes.CalcPNL(ctx, bp, nil)
 		if err != nil {
 			tradingdb2utils.Error("Serv.SimTrading:CalcPNL baseline",
@@ -362,7 +396,7 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		res.Baseline = append(res.Baseline, br.Pnl...)
 	}
 
-	reply, err := serv.MgrNodes.CalcPNL(ctx, req.Params, nil)
+	reply, err := serv.MgrNodes.CalcPNL(ctx, params, nil)
 	if err != nil {
 		tradingdb2utils.Error("Serv.SimTrading:CalcPNL",
 			zap.Error(err))

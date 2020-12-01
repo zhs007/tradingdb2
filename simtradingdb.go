@@ -9,6 +9,7 @@ import (
 	ankadb "github.com/zhs007/ankadb"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
+	"go.uber.org/zap"
 )
 
 const simtradingDBName = "simtrading"
@@ -48,7 +49,9 @@ func NewSimTradingDB(dbpath string, httpAddr string, engine string) (*SimTrading
 }
 
 // UpdSimTrading - update simulation trading
-func (db *DB) UpdSimTrading(ctx context.Context, params *tradingpb.SimTradingParams, pnldata *tradingpb.PNLData) error {
+func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.SimTradingParams, pnldata *tradingpb.PNLData) error {
+	pnldata.Lastts = time.Now().Unix()
+
 	buf, err := proto.Marshal(pnldata)
 	if err != nil {
 		return err
@@ -64,55 +67,37 @@ func (db *DB) UpdSimTrading(ctx context.Context, params *tradingpb.SimTradingPar
 }
 
 // GetSimTrading - get candles
-func (db *DB) GetSimTrading(ctx context.Context, market string, symbol string, tags []string, tsStart int64, tsEnd int64) (
-	*tradingpb.Candles, error) {
+func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.SimTradingParams) (
+	*tradingpb.PNLData, error) {
 
-	if market == "" {
-		return nil, ErrInvalidMarket
-	}
+	key := makeSimTradingDBKey(params.Strategies[0].Name, params.Assets[0].Market, params.Assets[0].Code, params.StartTs, params.EndTs)
 
-	if symbol == "" {
-		return nil, ErrInvalidSymbol
-	}
-
-	candles := &tradingpb.Candles{
-		Market: market,
-		Symbol: symbol,
-	}
-
-	if tsStart > 0 && tsEnd <= 0 {
-		tsEnd = time.Now().Unix()
-	}
-
-	err := db.AnkaDB.ForEachWithPrefix(ctx, dbname, makeCandlesDBKeyPrefix(market, symbol), func(key string, buf []byte) error {
-		cc := &tradingpb.Candles{}
-
-		err := proto.Unmarshal(buf, cc)
-		if err != nil {
-			return err
+	buf, err := db.AnkaDB.Get(ctx, dbname, key)
+	if err != nil {
+		if err == ankadb.ErrNotFoundKey {
+			return nil, nil
 		}
 
-		if len(tags) == 0 || tradingdb2utils.IndexOfStringSlice(tags, cc.Tag, 0) >= 0 {
-			if tsStart > 0 || tsEnd > 0 {
-				for _, v := range cc.Candles {
-					if v.Ts >= tsStart && v.Ts <= tsEnd {
-						candles.Candles = append(candles.Candles, v)
-					}
-				}
-			} else {
-				candles.Candles = append(candles.Candles, cc.Candles...)
-			}
-		}
+		tradingdb2utils.Warn("SimTradingDB.GetSimTrading:Get",
+			zap.Error(err))
 
-		return nil
-	})
+		return nil, err
+	}
+
+	pnl := &tradingpb.PNLData{}
+
+	err = proto.Unmarshal(buf, pnl)
 	if err != nil {
 		return nil, err
 	}
 
-	// if len(candles.Candles) == 0 {
-	// 	return nil, nil
-	// }
+	err = db.UpdSimTrading(ctx, params, pnl)
+	if err != nil {
+		tradingdb2utils.Warn("SimTradingDB.GetSimTrading:UpdSimTrading",
+			zap.Error(err))
 
-	return candles, nil
+		return nil, err
+	}
+
+	return pnl, nil
 }
