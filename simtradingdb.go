@@ -57,7 +57,7 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 		return err
 	}
 
-	err = db.AnkaDB.Set(ctx, dbname,
+	err = db.AnkaDB.Set(ctx, simtradingDBName,
 		makeSimTradingDBKey(params.Strategies[0].Name, params.Assets[0].Market, params.Assets[0].Code, params.StartTs, params.EndTs), buf)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 
 	key := makeSimTradingDBKey(params.Strategies[0].Name, params.Assets[0].Market, params.Assets[0].Code, params.StartTs, params.EndTs)
 
-	buf, err := db.AnkaDB.Get(ctx, dbname, key)
+	buf, err := db.AnkaDB.Get(ctx, simtradingDBName, key)
 	if err != nil {
 		if err == ankadb.ErrNotFoundKey {
 			return nil, nil
