@@ -177,7 +177,7 @@ message PNLData {
     PNLAssetData total = 2;
     repeated PNLAssetData assets = 3;
     string title = 4;
-    int64 lastts = 5;
+    int64 lastts = 5 [deprecated = true];
 }
 
 // SimTradingParams - simTrading parameters
@@ -194,4 +194,16 @@ message SimTradingParams {
 message TradingNodeInfo {
     int32 maxTasks = 1;
     int32 curTasks = 2;
+}
+
+// SimTradingCacheNode - 
+message SimTradingCacheNode {
+    SimTradingParams params = 1;
+    string key = 2;
+    int64 lastTs = 3;
+}
+
+// SimTradingCache - 
+message SimTradingCache {
+    repeated SimTradingCacheNode nodes = 1;
 }

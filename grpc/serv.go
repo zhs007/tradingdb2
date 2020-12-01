@@ -416,5 +416,15 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 
 	res.Pnl = reply.Pnl
 
+	if len(reply.Pnl) > 0 {
+		err = serv.DBSimTrading.UpdSimTrading(ctx, params, reply.Pnl[0])
+		if err != nil {
+			tradingdb2utils.Error("Serv.SimTrading:UpdSimTrading",
+				zap.Error(err))
+
+			return nil, err
+		}
+	}
+
 	return res, nil
 }
