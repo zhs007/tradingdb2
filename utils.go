@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 
+	proto "github.com/golang/protobuf/proto"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 )
 
@@ -164,4 +165,89 @@ func FixFundManagers(fms []*tradingpb.FundManager) {
 	for _, v := range fms {
 		FixFundManager(v)
 	}
+}
+
+// IsSameStrategy - is same Strategy
+func IsSameStrategy(v0 *tradingpb.Strategy, v1 *tradingpb.Strategy) bool {
+	if v0.Name != v1.Name {
+		return false
+	}
+
+	if !proto.Equal(v0.Asset, v1.Asset) {
+		return false
+	}
+
+	if len(v0.Buy) != len(v1.Buy) {
+		return false
+	}
+
+	for bi, bv0 := range v0.Buy {
+		bv1 := v1.Buy[bi]
+
+		if !proto.Equal(bv0, bv1) {
+			return false
+		}
+	}
+
+	if len(v0.Sell) != len(v1.Sell) {
+		return false
+	}
+
+	for si, sv0 := range v0.Sell {
+		sv1 := v1.Sell[si]
+
+		if !proto.Equal(sv0, sv1) {
+			return false
+		}
+	}
+
+	if len(v0.Stoploss) != len(v1.Stoploss) {
+		return false
+	}
+
+	for si, sv0 := range v0.Stoploss {
+		sv1 := v1.Stoploss[si]
+
+		if !proto.Equal(sv0, sv1) {
+			return false
+		}
+	}
+
+	if len(v0.Takeprofit) != len(v1.Takeprofit) {
+		return false
+	}
+
+	for ti, tv0 := range v0.Takeprofit {
+		tv1 := v1.Takeprofit[ti]
+
+		if !proto.Equal(tv0, tv1) {
+			return false
+		}
+	}
+
+	if !proto.Equal(v0.ParamsBuy, v1.ParamsBuy) {
+		return false
+	}
+
+	if !proto.Equal(v0.ParamsSell, v1.ParamsSell) {
+		return false
+	}
+
+	if !proto.Equal(v0.ParamsStopLoss, v1.ParamsStopLoss) {
+		return false
+	}
+
+	if !proto.Equal(v0.ParamsTakeProfit, v1.ParamsTakeProfit) {
+		return false
+	}
+
+	if !proto.Equal(v0.ParamsInit, v1.ParamsInit) {
+		return false
+	}
+
+	if !proto.Equal(v0.ParamsAIP, v1.ParamsAIP) {
+		return false
+	}
+
+	return true
 }
