@@ -176,6 +176,8 @@ message PNLData {
     string name = 1;
     PNLAssetData total = 2;
     repeated PNLAssetData assets = 3;
+    string title = 4;
+    int64 lastts = 5;
 }
 
 // SimTradingParams - simTrading parameters

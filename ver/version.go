@@ -1,4 +1,4 @@
 package tradingdb2ver
 
 // Version -
-const Version = "v0.3.28"
+const Version = "v0.3.31"

@@ -15,7 +15,9 @@
 # vendor/
 
 grpc/tradingdb2
+grpc/simtrading
 unittestdata/tradingdb2
+unittestdata/simtrading
 utils/*.log
 cfg/config.yaml
 cfg/chatbot.yaml
