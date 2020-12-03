@@ -6,6 +6,7 @@ import (
 
 	proto "github.com/golang/protobuf/proto"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
+	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 )
 
 // SortCandles - sort Candles
@@ -247,6 +248,17 @@ func IsSameStrategy(v0 *tradingpb.Strategy, v1 *tradingpb.Strategy) bool {
 
 	if !proto.Equal(v0.ParamsAIP, v1.ParamsAIP) {
 		return false
+	}
+
+	if len(v0.Indicators) != len(v1.Indicators) {
+		return false
+	}
+
+	// 这里顺序不一致也没问题
+	for _, iv0 := range v0.Indicators {
+		if tradingdb2utils.IndexOfStringSlice(v1.Indicators, iv0, 0) < 0 {
+			return false
+		}
 	}
 
 	return true
