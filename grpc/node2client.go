@@ -53,11 +53,11 @@ func (client *Node2Client) GetServerInfo(ctx context.Context, logger *zap.Logger
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
 		if err != nil {
 			if logger != nil {
-				logger.Error("Client.GetServerInfo:grpc.Dial",
+				logger.Error("Node2Client.GetServerInfo:grpc.Dial",
 					zap.String("server address", client.servAddr),
 					zap.Error(err))
 			} else {
-				tradingdb2utils.Error("Client.GetServerInfo:grpc.Dial",
+				tradingdb2utils.Error("Node2Client.GetServerInfo:grpc.Dial",
 					zap.String("server address", client.servAddr),
 					zap.Error(err))
 			}
@@ -78,10 +78,10 @@ func (client *Node2Client) GetServerInfo(ctx context.Context, logger *zap.Logger
 	reply, err := client.client.GetServerInfo(ctx, req)
 	if err != nil {
 		if logger != nil {
-			logger.Error("Client.GetServerInfo:Client.GetServerInfo",
+			logger.Error("Node2Client.GetServerInfo:Client.GetServerInfo",
 				zap.Error(err))
 		} else {
-			tradingdb2utils.Error("Client.GetServerInfo:Client.GetServerInfo",
+			tradingdb2utils.Error("Node2Client.GetServerInfo:Client.GetServerInfo",
 				zap.Error(err))
 		}
 
@@ -98,8 +98,13 @@ func (client *Node2Client) GetServerInfo(ctx context.Context, logger *zap.Logger
 func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
 	if client.lastTaskNums <= 0 {
 		if time.Now().Unix()-client.lastTs < TradingNode2RequestOffTime {
+			tradingdb2utils.Error("Node2Client.CalcPNL",
+				zap.Error(ErrNodeNotFree))
+
 			return nil, ErrNodeNotFree
 		}
+
+		client.lastTaskNums = 1
 	}
 
 	client.lastTaskNums--
