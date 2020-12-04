@@ -70,5 +70,8 @@ func (mgr *Node2Mgr) CalcPNL(ctx context.Context, params *tradingpb.SimTradingPa
 		return cn.CalcPNL(ctx, params, logger)
 	}
 
+	tradingdb2utils.Error("Node2Mgr.CalcPNL",
+		zap.Error(ErrNodeNotFree))
+
 	return nil, ErrNodeNotFree
 }

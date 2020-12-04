@@ -409,16 +409,6 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		return nil, err
 	}
 
-	// if len(reply.Pnl) > 0 {
-	// 	for _, v := range reply.Pnl[0].Total.Values {
-	// 		tradingdb2utils.Info("Serv.SimTrading:CalcPNL",
-	// 			zap.Float32("perValue", v.PerValue),
-	// 			zap.Float32("cost", v.Cost),
-	// 			zap.Float32("value", v.Value),
-	// 			zap.Int64("ts", v.Ts))
-	// 	}
-	// }
-
 	res.Pnl = reply.Pnl
 
 	if len(reply.Pnl) > 0 {

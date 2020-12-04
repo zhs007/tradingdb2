@@ -114,8 +114,8 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.SimTradingParams) (
 	*tradingpb.PNLData, error) {
 
-	tradingdb2utils.Debug("SimTradingDB.GetSimTrading",
-		tradingdb2utils.JSON("params", params))
+	// tradingdb2utils.Debug("SimTradingDB.GetSimTrading",
+	// 	tradingdb2utils.JSON("params", params))
 
 	cache, err := db.getSimTradingNodes(ctx, params)
 	if err != nil {
@@ -126,7 +126,8 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 	}
 
 	if cache == nil {
-		tradingdb2utils.Debug("SimTradingDB.GetSimTrading:no cache")
+		tradingdb2utils.Debug("SimTradingDB.GetSimTrading:no cache",
+			tradingdb2utils.JSON("params", params))
 
 		return nil, nil
 	}
@@ -139,8 +140,8 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 			return db.getPNLData(ctx, v.Key)
 		}
 
-		tradingdb2utils.Debug("SimTradingDB.GetSimTrading:isSameSimTradingParams",
-			tradingdb2utils.JSON("v", v))
+		// tradingdb2utils.Debug("SimTradingDB.GetSimTrading:isSameSimTradingParams",
+		// 	tradingdb2utils.JSON("v", v))
 	}
 
 	return nil, nil
