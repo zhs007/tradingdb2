@@ -367,20 +367,22 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		return nil, err
 	}
 
-	pnl, err := serv.DBSimTrading.GetSimTrading(ctx, params)
-	if err != nil {
-		tradingdb2utils.Error("Serv.SimTrading:GetSimTrading",
-			zap.Error(err))
+	if !req.IgnoreCache {
+		pnl, err := serv.DBSimTrading.GetSimTrading(ctx, params)
+		if err != nil {
+			tradingdb2utils.Error("Serv.SimTrading:GetSimTrading",
+				zap.Error(err))
 
-		return nil, err
-	}
+			return nil, err
+		}
 
-	if pnl != nil {
-		return &tradingpb.ReplySimTrading{
-			Pnl: []*tradingpb.PNLData{
-				pnl,
-			},
-		}, nil
+		if pnl != nil {
+			return &tradingpb.ReplySimTrading{
+				Pnl: []*tradingpb.PNLData{
+					pnl,
+				},
+			}, nil
+		}
 	}
 
 	res := &tradingpb.ReplySimTrading{}
