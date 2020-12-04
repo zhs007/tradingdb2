@@ -53,7 +53,7 @@ message CtrlCondition {
     string indicator = 1 [deprecated = true];   // 弃用，因为control condition不仅仅只有indicator，还有别的condition，所以换个名不至于引起歧义
     repeated float vals = 2;                    // 浮点数参数
     repeated string operators = 3;              // 操作符，按道理应该和 vals 长度一样，大于小于等于
-    string combCondition = 4;                   // 组合条件，如果有多个操作条件，这里是 与或非
+    string combCondition = 4;                   // 组合条件，如果有多个操作条件，这里是 与或，&& ||，这里没括号，所以没办法做特别复杂的判断，默认是 &&
     repeated float minvals = 5;                 // 区间参数
     repeated float maxvals = 6;                 // 区间参数
     repeated float offvals = 7;
