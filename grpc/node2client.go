@@ -91,6 +91,8 @@ func (client *Node2Client) GetServerInfo(ctx context.Context, logger *zap.Logger
 		return nil, err
 	}
 
+	client.lastTaskNums = int(reply.NodeInfo.MaxTasks - reply.NodeInfo.CurTasks)
+
 	return reply, nil
 }
 
@@ -104,7 +106,11 @@ func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTra
 			return nil, ErrNodeNotFree
 		}
 
-		client.lastTaskNums = 1
+		client.GetServerInfo(ctx, logger)
+
+		if client.lastTaskNums <= 0 {
+			return nil, ErrNodeNotFree
+		}
 	}
 
 	client.lastTaskNums--
@@ -122,6 +128,8 @@ func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTra
 					zap.String("server address", client.servAddr),
 					zap.Error(err))
 			}
+
+			client.GetServerInfo(ctx, logger)
 
 			return nil, err
 		}
@@ -149,6 +157,8 @@ func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTra
 
 		// if error, reset
 		client.reset()
+
+		client.GetServerInfo(ctx, logger)
 
 		return nil, err
 	}
