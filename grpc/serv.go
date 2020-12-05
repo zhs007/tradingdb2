@@ -377,6 +377,8 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		}
 
 		if pnl != nil {
+			tradingdb2utils.Debug("Serv.SimTrading:Cached")
+
 			return &tradingpb.ReplySimTrading{
 				Pnl: []*tradingpb.PNLData{
 					pnl,

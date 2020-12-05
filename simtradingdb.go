@@ -73,6 +73,16 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 
 				return err
 			}
+
+			err = db.updPNLData(ctx, v.Key, pnldata)
+			if err != nil {
+				tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:updPNLData",
+					zap.Error(err))
+
+				return err
+			}
+
+			return nil
 		}
 	}
 
@@ -87,6 +97,7 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 	node := &tradingpb.SimTradingCacheNode{
 		Params: params,
 		Key:    nkey,
+		LastTs: time.Now().Unix(),
 	}
 
 	cache.Nodes = append(cache.Nodes, node)
