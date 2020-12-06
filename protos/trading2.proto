@@ -58,7 +58,8 @@ message CtrlCondition {
     repeated float maxvals = 6;                 // 区间参数
     repeated float offvals = 7;
     repeated string strVals = 8;                // 字符串参数
-    string name = 9;
+    string name = 9;                            // 实际的 Control Condition 类型，替代以前的 indicator
+    int32 group = 10;                           // 组，用来处理 (A&&B)||(C&&D)这样的复杂判断，group之间只可能是或的关系
 }
 
 // IndicatorType - indicator类型
