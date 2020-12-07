@@ -80,12 +80,18 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 
 // Start - start a service
 func (serv *Serv) Start(ctx context.Context) error {
+	go func() {
+		go serv.MgrNodes.Start()
+	}()
+
 	return serv.grpcServ.Serve(serv.lis)
 }
 
 // Stop - stop service
 func (serv *Serv) Stop() {
 	serv.lis.Close()
+
+	serv.MgrNodes.Stop()
 
 	return
 }
