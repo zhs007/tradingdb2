@@ -434,14 +434,18 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 
 // SimTrading2 - simulation trading
 func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) error {
-	lastTaskNums := 0
-	isRecvEnd := false
-	endChan := make(chan error)
+	// isRecvEnd := false
+
+	stt := NewSimTradingTasksMgr()
+
+	stt.Start()
 
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
-			isRecvEnd = true
+			stt.Stop()
+
+			return nil
 		}
 
 		if err != nil {
@@ -452,63 +456,26 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 		}
 
 		if in != nil {
-			go func(ctx context.Context, req *tradingpb.RequestSimTrading) {
-				lastTaskNums++
-
-				reply, err := serv.simTrading(ctx, req)
+			serv.simTrading(stream.Context(), stt, in, func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error) {
 				if err != nil {
-					tradingdb2utils.Error("Serv.SimTrading2:simTrading",
+					tradingdb2utils.Error("Serv.SimTrading2:simTrading:OnEnd",
 						zap.Error(err))
-
-					endChan <- err
-
-					return
+				} else if reply != nil {
+					stream.Send(reply)
 				}
-
-				reply.Index = req.Index
-
-				err = stream.Send(reply)
-				if err != nil {
-					tradingdb2utils.Error("Serv.SimTrading2:Send",
-						zap.Error(err))
-
-					endChan <- err
-
-					return
-				}
-
-				endChan <- nil
-
-			}(stream.Context(), in)
+			})
 		}
 
-		go func(ctx context.Context) {
-			for {
-				select {
-				case err := <-endChan:
-					lastTaskNums--
-
-					if err != nil {
-						tradingdb2utils.Error("Serv.SimTrading2:endChan",
-							zap.Error(err))
-					}
-
-				case <-ctx.Done():
-					tradingdb2utils.Error("Serv.SimTrading2:ContextDone")
-				}
-			}
-		}(stream.Context())
-
-		if lastTaskNums <= 0 && isRecvEnd {
-			return nil
-		}
+		// if isRecvEnd && !stt.IsRunning() {
+		// 	return nil
+		// }
 	}
 
 	// return nil
 }
 
 // simTrading - simTrading
-func (serv *Serv) simTrading(ctx context.Context, req *tradingpb.RequestSimTrading) (*tradingpb.ReplySimTrading, error) {
+func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTradingTaskEnd) {
 	tradingdb2utils.Info("Serv.simTrading",
 		tradingdb2utils.JSON("request", req))
 
@@ -519,7 +486,9 @@ func (serv *Serv) simTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 			zap.Strings("tokens", serv.Cfg.Tokens),
 			zap.Error(err))
 
-		return nil, err
+		onEnd(req, nil, err)
+
+		return
 	}
 
 	params, err := serv.DB.FixSimTradingParams(ctx, req.Params)
@@ -527,7 +496,9 @@ func (serv *Serv) simTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		tradingdb2utils.Error("Serv.simTrading:FixSimTradingParams",
 			zap.Error(err))
 
-		return nil, err
+		onEnd(req, nil, err)
+
+		return
 	}
 
 	if !req.IgnoreCache {
@@ -536,55 +507,27 @@ func (serv *Serv) simTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 			tradingdb2utils.Error("Serv.simTrading:GetSimTrading",
 				zap.Error(err))
 
-			return nil, err
+			onEnd(req, nil, err)
+
+			return
 		}
 
 		if pnl != nil {
 			tradingdb2utils.Debug("Serv.simTrading:Cached")
 
-			return &tradingpb.ReplySimTrading{
+			onEnd(req, &tradingpb.ReplySimTrading{
 				Pnl: []*tradingpb.PNLData{
 					pnl,
 				},
-			}, nil
+			}, err)
+
+			return
 		}
 	}
 
-	res := &tradingpb.ReplySimTrading{}
-
-	for _, v := range params.Baselines {
-		bp := GenCalcBaseline(v, params.StartTs, params.EndTs)
-		br, err := serv.MgrNodes.CalcPNL2(ctx, bp, nil)
-		if err != nil {
-			tradingdb2utils.Error("Serv.simTrading:CalcPNL baseline",
-				tradingdb2utils.JSON("parameter", bp),
-				zap.Error(err))
-
-			return nil, err
-		}
-
-		res.Baseline = append(res.Baseline, br.Pnl...)
-	}
-
-	reply, err := serv.MgrNodes.CalcPNL2(ctx, params, nil)
+	err = mgrTasks.AddTask(serv.MgrNodes, req, onEnd)
 	if err != nil {
-		tradingdb2utils.Error("Serv.simTrading:CalcPNL",
+		tradingdb2utils.Error("Serv.simTrading:AddTask",
 			zap.Error(err))
-
-		return nil, err
 	}
-
-	res.Pnl = reply.Pnl
-
-	if len(reply.Pnl) > 0 {
-		err = serv.DBSimTrading.UpdSimTrading(ctx, params, reply.Pnl[0])
-		if err != nil {
-			tradingdb2utils.Error("Serv.simTrading:UpdSimTrading",
-				zap.Error(err))
-
-			return nil, err
-		}
-	}
-
-	return res, nil
 }
