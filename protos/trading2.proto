@@ -196,11 +196,11 @@ message PNLAssetData {
 
 // PNLData - 
 message PNLData {
-    string name = 1;
+    string name = 1 [deprecated = true];                    // 弃用了，名字统一，用title
     PNLAssetData total = 2;
-    repeated PNLAssetData assets = 3;
-    string title = 4;
-    int64 lastts = 5 [deprecated = true];
+    repeated PNLAssetData assets = 3 [deprecated = true];
+    string title = 4;                                       // 应该用 SimTradingParams 的 title 赋值，cache 读取后也需要
+    int64 lastts = 5 [deprecated = true];                   // 弃用了，直接用 SimTradingCacheNode 里的 lastTs
 }
 
 // SimTradingParams - simTrading parameters
