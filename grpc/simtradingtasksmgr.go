@@ -1,21 +1,146 @@
 package tradingdb2grpc
 
 import (
-	"context"
+	"sync"
+	"time"
 
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
+	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
+	"go.uber.org/zap"
 )
 
-// FuncOnTaskEnd -
-type FuncOnTaskEnd func(context.Context, *tradingpb.RequestSimTrading, *tradingpb.ReplySimTrading, error)
+// FuncOnSimTradingTaskEnd -
+type FuncOnSimTradingTaskEnd func(*tradingpb.RequestSimTrading, *tradingpb.ReplySimTrading, error)
 
 // SimTradingTask -
 type SimTradingTask struct {
-	Req       *tradingpb.RequestSimTrading
-	OnTaskEnd FuncOnTaskEnd
+	Req   *tradingpb.RequestSimTrading
+	OnEnd FuncOnSimTradingTaskEnd
 }
 
 // SimTradingTasksMgr -
 type SimTradingTasksMgr struct {
-	MapTasks map[int32]*SimTradingTask
+	mapTasks    map[int32]*SimTradingTask
+	mutexTasks  sync.Mutex
+	chanResult  chan *SimTradingTask
+	chanRelease chan int
+	isRunning   bool
+}
+
+// NewSimTradingTasksMgr - new a SimTradingTasksMgr
+func NewSimTradingTasksMgr() *SimTradingTasksMgr {
+	return &SimTradingTasksMgr{
+		mapTasks:    make(map[int32]*SimTradingTask),
+		chanResult:  make(chan *SimTradingTask),
+		chanRelease: make(chan int),
+	}
+}
+
+// AddTask -
+func (mgr *SimTradingTasksMgr) AddTask(mgrNode *Node2Mgr, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTradingTaskEnd) error {
+	mgr.mutexTasks.Lock()
+	defer mgr.mutexTasks.Unlock()
+
+	_, isok := mgr.mapTasks[req.Index]
+	if isok {
+		tradingdb2utils.Error("SimTradingTasksMgr.AddTask",
+			zap.Error(ErrDuplicateTaskIndex))
+
+		return ErrDuplicateTaskIndex
+	}
+
+	curtask := &SimTradingTask{
+		Req:   req,
+		OnEnd: onEnd,
+	}
+
+	mgr.mapTasks[req.Index] = curtask
+
+	mgrNode.AddTask(int(req.Index), req.Params, func(taskIndex int, params *tradingpb.SimTradingParams, reply *tradingpb.ReplyCalcPNL, err error) {
+		if reply != nil {
+			onEnd(req, &tradingpb.ReplySimTrading{
+				Pnl: reply.Pnl,
+			}, err)
+		} else {
+			onEnd(req, nil, err)
+		}
+
+		mgr.chanResult <- curtask
+	}, nil)
+
+	return nil
+}
+
+// IsRunning -
+func (mgr *SimTradingTasksMgr) IsRunning() bool {
+	return mgr.isRunning
+}
+
+// isFinished -
+func (mgr *SimTradingTasksMgr) isFinished() bool {
+	mgr.mutexTasks.Lock()
+	defer mgr.mutexTasks.Unlock()
+
+	return len(mgr.mapTasks) <= 0
+}
+
+// Start -
+func (mgr *SimTradingTasksMgr) Start() {
+	go func() {
+		mgr.onMain()
+	}()
+}
+
+// Stop -
+func (mgr *SimTradingTasksMgr) Stop() {
+	mgr.chanRelease <- 0
+
+	for {
+		if !mgr.isRunning {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+}
+
+// onMain -
+func (mgr *SimTradingTasksMgr) onMain() {
+	mgr.isRunning = true
+
+	isStop := false
+
+	for {
+		select {
+		case task := <-mgr.chanResult:
+			mgr.onTaskEnd(task)
+
+		case <-mgr.chanRelease:
+			isStop = true
+		}
+
+		if isStop && mgr.isFinished() {
+			mgr.isRunning = false
+
+			return
+		}
+	}
+}
+
+// onTaskEnd -
+func (mgr *SimTradingTasksMgr) onTaskEnd(curtask *SimTradingTask) {
+	mgr.mutexTasks.Lock()
+	defer mgr.mutexTasks.Unlock()
+
+	if curtask != nil {
+		_, isok := mgr.mapTasks[curtask.Req.Index]
+		if !isok {
+			tradingdb2utils.Error("SimTradingTasksMgr.AddTask",
+				zap.Error(ErrDuplicateTaskIndex))
+
+			return
+		}
+
+		delete(mgr.mapTasks, curtask.Req.Index)
+	}
 }

@@ -14,4 +14,9 @@ var (
 
 	// ErrDuplicateRuningTaskInNode2Mgr - Duplicate runing task in Node2Mgr
 	ErrDuplicateRuningTaskInNode2Mgr = errors.New("Duplicate runing task in Node2Mgr")
+
+	// ErrDuplicateTaskIndex - Duplicate task index
+	ErrDuplicateTaskIndex = errors.New("Duplicate task index")
+	// ErrNoTaskIndex - No task index
+	ErrNoTaskIndex = errors.New("No task index")
 )
