@@ -385,6 +385,8 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		if pnl != nil {
 			tradingdb2utils.Debug("Serv.SimTrading:Cached")
 
+			pnl.Title = req.Params.Title
+
 			return &tradingpb.ReplySimTrading{
 				Pnl: []*tradingpb.PNLData{
 					pnl,
@@ -395,19 +397,19 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 
 	res := &tradingpb.ReplySimTrading{}
 
-	for _, v := range params.Baselines {
-		bp := GenCalcBaseline(v, params.StartTs, params.EndTs)
-		br, err := serv.MgrNodes.CalcPNL2(ctx, bp, nil)
-		if err != nil {
-			tradingdb2utils.Error("Serv.SimTrading:CalcPNL baseline",
-				tradingdb2utils.JSON("parameter", bp),
-				zap.Error(err))
+	// for _, v := range params.Baselines {
+	// 	bp := GenCalcBaseline(v, params.StartTs, params.EndTs)
+	// 	br, err := serv.MgrNodes.CalcPNL2(ctx, bp, nil)
+	// 	if err != nil {
+	// 		tradingdb2utils.Error("Serv.SimTrading:CalcPNL baseline",
+	// 			tradingdb2utils.JSON("parameter", bp),
+	// 			zap.Error(err))
 
-			return nil, err
-		}
+	// 		return nil, err
+	// 	}
 
-		res.Baseline = append(res.Baseline, br.Pnl...)
-	}
+	// 	res.Baseline = append(res.Baseline, br.Pnl...)
+	// }
 
 	reply, err := serv.MgrNodes.CalcPNL2(ctx, params, nil)
 	if err != nil {
@@ -420,6 +422,8 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 	res.Pnl = reply.Pnl
 
 	if len(reply.Pnl) > 0 {
+		reply.Pnl[0].Title = req.Params.Title
+
 		err = serv.DBSimTrading.UpdSimTrading(ctx, params, reply.Pnl[0])
 		if err != nil {
 			tradingdb2utils.Error("Serv.SimTrading:UpdSimTrading",
@@ -461,6 +465,10 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 					tradingdb2utils.Error("Serv.SimTrading2:simTrading:OnEnd",
 						zap.Error(err))
 				} else if reply != nil {
+					if len(reply.Pnl) > 0 {
+						reply.Pnl[0].Title = req.Params.Title
+					}
+
 					stream.Send(reply)
 				}
 			})

@@ -150,7 +150,7 @@ message RequestSimTrading {
 // ReplySimTrading - reply simTrading
 message ReplySimTrading {
     repeated PNLData pnl = 1;
-    repeated PNLData baseline = 2;
+    repeated PNLData baseline = 2 [deprecated = true];
     int32 index = 3;
 }
 

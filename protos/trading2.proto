@@ -141,7 +141,7 @@ message Strategy {
     TakeProfitParams paramsTakeProfit = 10;     // 止盈的参数
     InitParams paramsInit = 11;                 // 初始化的参数
     AIPParams paramsAIP = 12;                   // 定投参数
-    string title = 13;                          // 标题，这个可以任意起名
+    string title = 13 [deprecated = true];      // 弃用了，title主要用途是能和返回的PNLData对应上，这里没办法一一对应ß
     repeated string indicators = 14;            // 需要得到的indicators数据
 }
 
@@ -196,21 +196,22 @@ message PNLAssetData {
 
 // PNLData - 
 message PNLData {
-    string name = 1;
+    string name = 1 [deprecated = true];                    // 弃用了，名字统一，用title
     PNLAssetData total = 2;
-    repeated PNLAssetData assets = 3;
-    string title = 4;
-    int64 lastts = 5 [deprecated = true];
+    repeated PNLAssetData assets = 3 [deprecated = true];
+    string title = 4;                                       // 应该用 SimTradingParams 的 title 赋值，cache 读取后也需要
+    int64 lastts = 5 [deprecated = true];                   // 弃用了，直接用 SimTradingCacheNode 里的 lastTs
 }
 
 // SimTradingParams - simTrading parameters
 message SimTradingParams {
     repeated Asset assets = 1;
-    repeated Asset baselines = 2;
+    repeated Asset baselines = 2 [deprecated = true];   // 弃用了，基线直接用单独的 SimTradingParams 来处理，更容易缓存一些
     int64 startTs = 3;
     int64 endTs = 4;
     repeated Strategy strategies = 5;
     Wallet wallet = 6;
+    string title = 7;                                   // title，会重新设置到PNLData上
 }
 
 // TradingNodeInfo - trading node2 infomation
