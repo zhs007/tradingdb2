@@ -136,6 +136,9 @@ func (mgr *Node2Mgr) AddTask(taskIndex int, params *tradingpb.SimTradingParams,
 
 	mgr.tasks = append(mgr.tasks, task)
 
+	tradingdb2utils.Debug("Node2Mgr.AddTask",
+		tradingdb2utils.JSON("params", params))
+
 	mgr.chanAddTask <- 0
 
 	return nil
@@ -215,11 +218,11 @@ func (mgr *Node2Mgr) onTaskEnd(result *Node2TaskResult) error {
 
 				return nil
 			}
-
-			tradingdb2utils.Error("Node2Mgr.onTaskEnd",
-				zap.Error(ErrNoRuningTaskInNode2Mgr))
 		}
 	}
+
+	tradingdb2utils.Error("Node2Mgr.onTaskEnd",
+		zap.Error(ErrNoRuningTaskInNode2Mgr))
 
 	return ErrNoRuningTaskInNode2Mgr
 }
@@ -231,6 +234,8 @@ func (mgr *Node2Mgr) nextTask(ctx context.Context) error {
 
 	client := mgr.getFreeClient()
 	if client == nil {
+		tradingdb2utils.Debug("Node2Mgr.nextTask:non-free")
+
 		return nil
 	}
 
@@ -258,6 +263,9 @@ func (mgr *Node2Mgr) nextTask(ctx context.Context) error {
 
 // runTask -
 func (mgr *Node2Mgr) runTask(ctx context.Context, client *Node2Client, task *Node2Task) {
+	tradingdb2utils.Debug("Node2Mgr.runTask",
+		tradingdb2utils.JSON("params", task.Params))
+
 	if client != nil {
 		reply, err := client.CalcPNL(ctx, task.Params, nil)
 		if err != nil {
