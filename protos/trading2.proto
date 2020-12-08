@@ -59,7 +59,7 @@ message CtrlCondition {
     repeated float offvals = 7 [deprecated = true];     // 最初规划用来做穷举策略参数用的区间参数的偏移量
     repeated string strVals = 8;                        // 字符串参数
     string name = 9;                                    // 实际的 Control Condition 类型，替代以前的 indicator
-    int32 group = 10;                                   // 组，用来处理 (A&&B)||(C&&D)这样的复杂判断，group之间只可能是或的关系
+    int32 group = 10;                                   // 组，用来处理 (A&&B)||(C&&D) 这样的复杂判断，group之间只可能是或的关系
 }
 
 // IndicatorType - indicator类型
@@ -141,7 +141,7 @@ message Strategy {
     TakeProfitParams paramsTakeProfit = 10;     // 止盈的参数
     InitParams paramsInit = 11;                 // 初始化的参数
     AIPParams paramsAIP = 12;                   // 定投参数
-    string title = 13 [deprecated = true];      // 弃用了，title主要用途是能和返回的PNLData对应上，这里没办法一一对应ß
+    string title = 13 [deprecated = true];      // 弃用了，title主要用途是能和返回的PNLData对应上，这里没办法一一对应
     repeated string indicators = 14;            // 需要得到的indicators数据
 }
 
@@ -192,6 +192,7 @@ message PNLAssetData {
     float maxPerDownYear = 32;              // 最大单年跌幅
     repeated CtrlNode lstCtrl = 33;         // 操作队列
     repeated Indicator indicators = 34;     // 请求的indicators
+    int32 winTimes = 35;                    // 胜利次数，winTimes / (sellTimes + stoplossTimes) 就是胜率
 }
 
 // PNLData - 
