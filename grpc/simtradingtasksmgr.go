@@ -39,10 +39,11 @@ func NewSimTradingTasksMgr() *SimTradingTasksMgr {
 // AddTask -
 func (mgr *SimTradingTasksMgr) AddTask(mgrNode *Node2Mgr, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTradingTaskEnd) error {
 	mgr.mutexTasks.Lock()
-	defer mgr.mutexTasks.Unlock()
 
 	_, isok := mgr.mapTasks[req.Index]
 	if isok {
+		mgr.mutexTasks.Unlock()
+
 		tradingdb2utils.Error("SimTradingTasksMgr.AddTask",
 			zap.Error(ErrDuplicateTaskIndex))
 
@@ -55,6 +56,8 @@ func (mgr *SimTradingTasksMgr) AddTask(mgrNode *Node2Mgr, req *tradingpb.Request
 	}
 
 	mgr.mapTasks[req.Index] = curtask
+
+	defer mgr.mutexTasks.Unlock()
 
 	mgrNode.AddTask(int(req.Index), req.Params, func(taskIndex int, params *tradingpb.SimTradingParams, reply *tradingpb.ReplyCalcPNL, err error) {
 		if reply != nil {
@@ -129,10 +132,10 @@ func (mgr *SimTradingTasksMgr) onMain() {
 
 // onTaskEnd -
 func (mgr *SimTradingTasksMgr) onTaskEnd(curtask *SimTradingTask) {
-	mgr.mutexTasks.Lock()
-	defer mgr.mutexTasks.Unlock()
-
 	if curtask != nil {
+		mgr.mutexTasks.Lock()
+		defer mgr.mutexTasks.Unlock()
+
 		_, isok := mgr.mapTasks[curtask.Req.Index]
 		if !isok {
 			tradingdb2utils.Error("SimTradingTasksMgr.AddTask",
