@@ -93,6 +93,9 @@ func (client *Node2Client) GetServerInfo(ctx context.Context, logger *zap.Logger
 
 	client.lastTaskNums = int(reply.NodeInfo.MaxTasks - reply.NodeInfo.CurTasks)
 
+	tradingdb2utils.Debug("Node2Client.GetServerInfo",
+		tradingdb2utils.JSON("reply", reply))
+
 	return reply, nil
 }
 
@@ -165,8 +168,14 @@ func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTra
 
 	if reply.NodeInfo != nil {
 		client.lastTaskNums = int(reply.NodeInfo.MaxTasks - reply.NodeInfo.CurTasks)
+
+		tradingdb2utils.Debug("Node2Client.CalcPNL:NodeInfo",
+			tradingdb2utils.JSON("reply.NodeInfo", reply.NodeInfo))
 	} else {
 		client.lastTaskNums++
+
+		tradingdb2utils.Debug("Node2Client.CalcPNL:non-NodeInfo",
+			tradingdb2utils.JSON("lastTaskNums", client.lastTaskNums))
 	}
 
 	return reply, nil
