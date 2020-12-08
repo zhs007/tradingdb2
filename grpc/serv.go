@@ -467,6 +467,14 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 				} else if reply != nil {
 					if len(reply.Pnl) > 0 {
 						reply.Pnl[0].Title = req.Params.Title
+
+						err = serv.DBSimTrading.UpdSimTrading(stream.Context(), req.Params, reply.Pnl[0])
+						if err != nil {
+							tradingdb2utils.Error("Serv.SimTrading2:UpdSimTrading",
+								zap.Error(err))
+
+							return
+						}
 					}
 
 					stream.Send(reply)
