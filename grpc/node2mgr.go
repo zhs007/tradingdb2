@@ -132,9 +132,10 @@ func (mgr *Node2Mgr) AddTask(taskIndex int, params *tradingpb.SimTradingParams,
 	}
 
 	mgr.mutexTasks.Lock()
-	defer mgr.mutexTasks.Unlock()
 
 	mgr.tasks = append(mgr.tasks, task)
+
+	mgr.mutexTasks.Unlock()
 
 	tradingdb2utils.Debug("Node2Mgr.AddTask",
 		tradingdb2utils.JSON("params", params))
@@ -203,21 +204,24 @@ func (mgr *Node2Mgr) Stop() error {
 
 // onTaskEnd -
 func (mgr *Node2Mgr) onTaskEnd(result *Node2TaskResult) error {
-	mgr.mutexTasks.Lock()
-	defer mgr.mutexTasks.Unlock()
-
 	if result != nil {
 		if result.Task != nil {
 			if result.Task.OnEnd != nil {
 				result.Task.OnEnd(result.Task.TaskIndex, result.Task.Params, result.Reply, result.Err)
 			}
 
+			mgr.mutexTasks.Lock()
+
 			_, isok := mgr.tasksRunning[result.Task]
 			if isok {
 				delete(mgr.tasksRunning, result.Task)
 
+				mgr.mutexTasks.Unlock()
+
 				return nil
 			}
+
+			mgr.mutexTasks.Unlock()
 		}
 	}
 
@@ -282,6 +286,8 @@ func (mgr *Node2Mgr) runTask(ctx context.Context, client *Node2Client, task *Nod
 				Reply: reply,
 			}
 		}
+
+		tradingdb2utils.Debug("Node2Mgr.runTask:end")
 
 		return
 	}
