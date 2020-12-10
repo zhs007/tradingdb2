@@ -147,7 +147,7 @@ func (client *Client) UpdCandles(ctx context.Context, candles *tradingpb.Candles
 }
 
 // GetCandles - get candles
-func (client *Client) GetCandles(ctx context.Context, market string, symbol string, tags []string, tsStart int64, tsEnd int64, logger *zap.Logger) (
+func (client *Client) GetCandles(ctx context.Context, market string, symbol string, tsStart int64, tsEnd int64, logger *zap.Logger) (
 	*tradingpb.Candles, error) {
 
 	if client.conn == nil || client.client == nil {
@@ -173,7 +173,6 @@ func (client *Client) GetCandles(ctx context.Context, market string, symbol stri
 	stream, err := client.client.GetCandles(ctx, &tradingpb.RequestGetCandles{
 		Market:  market,
 		Symbol:  symbol,
-		Tags:    tags,
 		TsStart: tsStart,
 		TsEnd:   tsEnd,
 		BasicRequest: &tradingpb.BasicRequestData{

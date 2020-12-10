@@ -16,8 +16,12 @@
 
 grpc/tradingdb2
 grpc/simtrading
+grpc/jrj
+grpc/bitmex
 unittestdata/tradingdb2
 unittestdata/simtrading
+unittestdata/jrj
+unittestdata/bitmex
 utils/*.log
 cfg/config.yaml
 cfg/chatbot.yaml

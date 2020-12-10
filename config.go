@@ -20,6 +20,7 @@ type Config struct {
 	BindAddr        string       `yaml:"bindaddr"`
 	LogLevel        string       `yaml:"loglevel"`
 	LogPath         string       `yaml:"logpath"`
+	DB2Markets      []string     `yaml:"db2markets"`
 	Tokens          []string     `yaml:"tokens"`
 	DataPath        string       `yaml:"datapath"`
 	DataURL         string       `yaml:"dataurl"`

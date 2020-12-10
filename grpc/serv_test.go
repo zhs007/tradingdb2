@@ -43,7 +43,7 @@ func Test_Serv(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, ret)
 
-	replygetcandles, err := client0.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200101"}, 0, 0, nil)
+	replygetcandles, err := client0.GetCandles(context.Background(), "bitmex", "BTX", 0, 0, nil)
 	assert.Error(t, err)
 	assert.Nil(t, replygetcandles)
 
@@ -54,7 +54,7 @@ func Test_Serv(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(100))
 
-	dbcandles, err := serv.DB.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200101"}, 0, 0)
+	dbcandles, err := serv.DB2.GetCandles(context.Background(), "bitmex", "BTX", 0, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, dbcandles.Market, "bitmex")
 	assert.Equal(t, dbcandles.Symbol, "BTX")
@@ -65,7 +65,7 @@ func Test_Serv(t *testing.T) {
 		assert.Equal(t, dbcandles.Candles[i].Open, int64(100+i))
 	}
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200101"}, 0, 0, nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", 0, 0, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
@@ -96,7 +96,7 @@ func Test_Serv(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(100))
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 0, 0, nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", 0, 0, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
@@ -109,7 +109,7 @@ func Test_Serv(t *testing.T) {
 		assert.Equal(t, replygetcandles.Candles[i].Open, int64(100+i))
 	}
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 0, 90, nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", 0, 90, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
@@ -122,7 +122,7 @@ func Test_Serv(t *testing.T) {
 		assert.Equal(t, replygetcandles.Candles[i].Open, int64(100+i))
 	}
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 10, 11, nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", 10, 11, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
@@ -135,7 +135,7 @@ func Test_Serv(t *testing.T) {
 		assert.Equal(t, replygetcandles.Candles[i].Open, int64(110+i))
 	}
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 10, 10, nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", 10, 10, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
@@ -148,7 +148,7 @@ func Test_Serv(t *testing.T) {
 		assert.Equal(t, replygetcandles.Candles[i].Open, int64(110+i))
 	}
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200102"}, 10, 9, nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", 10, 9, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
@@ -167,26 +167,28 @@ func Test_Serv(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ret.LengthOK, int32(0))
 
-	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", []string{"20200103"}, 0, 0, nil)
+	replygetcandles, err = client1.GetCandles(context.Background(), "bitmex", "BTX", 0, 0, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetcandles)
 	assert.Equal(t, replygetcandles.Market, "bitmex")
 	assert.Equal(t, replygetcandles.Symbol, "BTX")
 	// assert.Equal(t, replygetcandles.Tag, "20200103")
-	assert.Equal(t, len(replygetcandles.Candles), 0)
+	assert.Equal(t, len(replygetcandles.Candles), 100)
 
 	si := &tradingpb.SymbolInfo{
-		Market: "cnfund",
+		Market: "jrj",
 		Symbol: "240001",
 		Fund: &tradingpb.Fund{
 			Code:       "240001",
 			Name:       "华宝宝康消费品",
 			Tags:       []string{"开放式", "混合型", "高风险"},
 			CreateTime: int64(123),
-			Size: []*tradingpb.FundSize{&tradingpb.FundSize{
-				Size: 1.23,
-				Time: 123,
-			}},
+			Size: []*tradingpb.FundSize{
+				{
+					Size: 1.23,
+					Time: 123,
+				},
+			},
 			Company: "华宝基金管理有限公司",
 			// Managers   []*FundManager `protobuf:"bytes,7,rep,name=managers,proto3" json:"managers,omitempty"`
 			// Results    []*FundResult  `protobuf:"bytes,8,rep,name=results,proto3" json:"results,omitempty"`
@@ -198,10 +200,10 @@ func Test_Serv(t *testing.T) {
 	assert.NotNil(t, replyupdsymbol)
 	assert.Equal(t, replyupdsymbol.IsOK, true)
 
-	replygetsymbol, err := client1.GetSymbol(context.Background(), "cnfund", "240001", nil)
+	replygetsymbol, err := client1.GetSymbol(context.Background(), "jrj", "240001", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, replygetsymbol)
-	assert.Equal(t, replygetsymbol.Market, "cnfund")
+	assert.Equal(t, replygetsymbol.Market, "jrj")
 	assert.Equal(t, replygetsymbol.Symbol, "240001")
 	assert.NotNil(t, replygetsymbol.Fund)
 	assert.Equal(t, replygetsymbol.Fund.Code, "240001")
@@ -217,7 +219,7 @@ func Test_Serv(t *testing.T) {
 	assert.Equal(t, replygetsymbol.Fund.Company, "华宝基金管理有限公司")
 
 	nums := 0
-	client1.GetSymbols(context.Background(), "cnfund", nil, func(si *tradingpb.SymbolInfo) {
+	client1.GetSymbols(context.Background(), "jrj", nil, func(si *tradingpb.SymbolInfo) {
 		nums++
 
 		assert.Equal(t, si.Fund.Code, "240001")
