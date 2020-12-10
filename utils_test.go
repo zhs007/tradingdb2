@@ -10,13 +10,13 @@ import (
 func Test_SortCandles(t *testing.T) {
 	candles := &tradingpb.Candles{
 		Candles: []*tradingpb.Candle{
-			&tradingpb.Candle{
+			{
 				Ts: 1,
 			},
-			&tradingpb.Candle{
+			{
 				Ts: 3,
 			},
-			&tradingpb.Candle{
+			{
 				Ts: 2,
 			},
 		},
@@ -39,13 +39,13 @@ func Test_SortCandles(t *testing.T) {
 func Test_InsCandles(t *testing.T) {
 	candles := &tradingpb.Candles{
 		Candles: []*tradingpb.Candle{
-			&tradingpb.Candle{
+			{
 				Ts: 10,
 			},
-			&tradingpb.Candle{
+			{
 				Ts: 3,
 			},
-			&tradingpb.Candle{
+			{
 				Ts: 2,
 			},
 		},
@@ -94,13 +94,13 @@ func Test_InsCandles(t *testing.T) {
 func Test_MergeCandles(t *testing.T) {
 	candles := &tradingpb.Candles{
 		Candles: []*tradingpb.Candle{
-			&tradingpb.Candle{
+			{
 				Ts: 10,
 			},
-			&tradingpb.Candle{
+			{
 				Ts: 3,
 			},
-			&tradingpb.Candle{
+			{
 				Ts: 2,
 			},
 		},
@@ -115,13 +115,13 @@ func Test_MergeCandles(t *testing.T) {
 
 	candles1 := &tradingpb.Candles{
 		Candles: []*tradingpb.Candle{
-			&tradingpb.Candle{
+			{
 				Ts: 10,
 			},
-			&tradingpb.Candle{
+			{
 				Ts: 11,
 			},
-			&tradingpb.Candle{
+			{
 				Ts: 1,
 			},
 		},

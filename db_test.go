@@ -27,7 +27,7 @@ func Test_DB(t *testing.T) {
 		Symbol: "BTX",
 		Tag:    "20200101",
 		Candles: []*tradingpb.Candle{
-			&tradingpb.Candle{
+			{
 				Open: 100,
 			},
 		},
