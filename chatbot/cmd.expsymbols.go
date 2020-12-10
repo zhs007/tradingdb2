@@ -48,7 +48,7 @@ func (cmd *cmdExpSymbols) RunCommand(ctx context.Context, serv *chatbot.Serv, pa
 
 	fn := tradingdb2utils.AppendString(cmdes.market, ".", time.Now().UTC().Format("2006-01-02_15:04:05"), ".xlsx")
 
-	err := tradingdb2.ExpSymbols(ctx, path.Join(cmd.serv.Cfg.DataPath, fn), cmd.serv.DB, cmdes.market)
+	err := tradingdb2.ExpSymbols2(ctx, path.Join(cmd.serv.Cfg.DataPath, fn), cmd.serv.DB2, cmdes.market)
 	if err != nil {
 		tradingdb2utils.Error("cmdExpSymbols.ExpSymbols",
 			zap.Error(err))

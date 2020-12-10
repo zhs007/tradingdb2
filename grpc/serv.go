@@ -17,7 +17,7 @@ import (
 type Serv struct {
 	lis          net.Listener
 	grpcServ     *grpc.Server
-	DB           *tradingdb2.DB
+	DB2          *tradingdb2.DB2
 	Cfg          *tradingdb2.Config
 	DBSimTrading *tradingdb2.SimTradingDB
 	MgrNodes     *Node2Mgr
@@ -26,9 +26,9 @@ type Serv struct {
 // NewServ -
 func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 
-	db, err := tradingdb2.NewDB(cfg.DBPath, "", cfg.DBEngine)
+	db, err := tradingdb2.NewDB2(cfg)
 	if err != nil {
-		tradingdb2utils.Error("NewServ.NewDB",
+		tradingdb2utils.Error("NewServ.NewDB2",
 			zap.Error(err))
 
 		return nil, err
@@ -63,7 +63,7 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 	serv := &Serv{
 		lis:          lis,
 		grpcServ:     grpcServ,
-		DB:           db,
+		DB2:          db,
 		DBSimTrading: dbSimTrading,
 		Cfg:          cfg,
 		MgrNodes:     mgrNodes,
@@ -152,7 +152,7 @@ func (serv *Serv) UpdCandles(stream tradingpb.TradingDB2_UpdCandlesServer) error
 
 		if err != nil {
 			if err == io.EOF {
-				err := serv.DB.UpdCandles(stream.Context(), candles)
+				err := serv.DB2.UpdCandles(stream.Context(), candles)
 				if err != nil {
 					tradingdb2utils.Error("Serv.UpdCandles:DB.UpdCandles",
 						zap.Int("length", len(candles.Candles)),
@@ -189,14 +189,14 @@ func (serv *Serv) GetCandles(req *tradingpb.RequestGetCandles, stream tradingpb.
 		return err
 	}
 
-	var tags []string
-	if len(req.Tags) > 0 {
-		tags = req.Tags
-	} else if len(req.Tags) == 0 && req.Tag != "" {
-		tags = append(tags, req.Tag)
-	}
+	// var tags []string
+	// if len(req.Tags) > 0 {
+	// 	tags = req.Tags
+	// } else if len(req.Tags) == 0 && req.Tag != "" {
+	// 	tags = append(tags, req.Tag)
+	// }
 
-	candles, err := serv.DB.GetCandles(stream.Context(), req.Market, req.Symbol, tags, req.TsStart, req.TsEnd)
+	candles, err := serv.DB2.GetCandles(stream.Context(), req.Market, req.Symbol, req.TsStart, req.TsEnd)
 	if err != nil {
 		tradingdb2utils.Error("Serv.GetCandles:DB.GetCandles",
 			tradingdb2utils.JSON("params", req),
@@ -234,7 +234,7 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingpb.RequestUpdSymbol
 		return nil, err
 	}
 
-	symbol, err := serv.DB.GetSymbol(ctx, req.Symbol.Market, req.Symbol.Symbol)
+	symbol, err := serv.DB2.GetSymbol(ctx, req.Symbol.Market, req.Symbol.Symbol)
 	if err != nil {
 		tradingdb2utils.Error("Serv.UpdSymbol:DB.GetSymbol",
 			zap.Error(err))
@@ -248,7 +248,7 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingpb.RequestUpdSymbol
 		symbol = req.Symbol
 	}
 
-	err = serv.DB.UpdSymbol(ctx, symbol)
+	err = serv.DB2.UpdSymbol(ctx, symbol)
 	if err != nil {
 		tradingdb2utils.Error("Serv.UpdSymbol:DB.UpdSymbol",
 			zap.Error(err))
@@ -275,7 +275,7 @@ func (serv *Serv) GetSymbol(ctx context.Context, req *tradingpb.RequestGetSymbol
 		return nil, err
 	}
 
-	si, err := serv.DB.GetSymbol(ctx, req.Market, req.Symbol)
+	si, err := serv.DB2.GetSymbol(ctx, req.Market, req.Symbol)
 	if err != nil {
 		tradingdb2utils.Error("Serv.GetSymbol:DB.GetSymbol",
 			zap.String("market", req.Market),
@@ -308,7 +308,7 @@ func (serv *Serv) GetSymbols(req *tradingpb.RequestGetSymbols, stream tradingpb.
 	if len(req.Symbols) > 0 {
 		symbols = req.Symbols
 	} else {
-		arr, err := serv.DB.GetMarketSymbols(stream.Context(), req.Market)
+		arr, err := serv.DB2.GetMarketSymbols(stream.Context(), req.Market)
 		if err != nil {
 			tradingdb2utils.Error("Serv.GetSymbols:GetMarketSymbols",
 				zap.String("Market", req.Market),
@@ -321,7 +321,7 @@ func (serv *Serv) GetSymbols(req *tradingpb.RequestGetSymbols, stream tradingpb.
 	}
 
 	for _, v := range symbols {
-		si, err := serv.DB.GetSymbol(stream.Context(), req.Market, v)
+		si, err := serv.DB2.GetSymbol(stream.Context(), req.Market, v)
 		if err != nil {
 			tradingdb2utils.Error("Serv.GetSymbols:DB.GetSymbol",
 				zap.String("market", req.Market),
@@ -365,7 +365,7 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		return nil, err
 	}
 
-	params, err := serv.DB.FixSimTradingParams(ctx, req.Params)
+	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
 	if err != nil {
 		tradingdb2utils.Error("Serv.SimTrading:FixSimTradingParams",
 			zap.Error(err))
@@ -507,7 +507,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 		return
 	}
 
-	params, err := serv.DB.FixSimTradingParams(ctx, req.Params)
+	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
 	if err != nil {
 		tradingdb2utils.Error("Serv.simTrading:FixSimTradingParams",
 			zap.Error(err))

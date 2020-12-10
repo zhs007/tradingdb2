@@ -36,7 +36,7 @@ func (cmd *cmdExpAllData) RunCommand(ctx context.Context, serv *chatbot.Serv, pa
 		return true, nil, chatbotbase.ErrCmdInvalidServMgrText
 	}
 
-	root, err := cmd.serv.DB.GetAllData(ctx)
+	root, err := cmd.serv.DB2.GetAllData(ctx)
 	if err != nil {
 		tradingdb2utils.Error("cmdExpAllData.RunCommand",
 			zap.Error(err))
