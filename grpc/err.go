@@ -9,6 +9,9 @@ var (
 	// ErrNoNode - No node
 	ErrNoNode = errors.New("No node")
 
+	// ErrNoAsset - No asset
+	ErrNoAsset = errors.New("No asset")
+
 	// ErrNoRuningTaskInNode2Mgr - No runing task in Node2Mgr
 	ErrNoRuningTaskInNode2Mgr = errors.New("No runing task in Node2Mgr")
 

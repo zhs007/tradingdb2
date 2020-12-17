@@ -365,6 +365,16 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		return nil, err
 	}
 
+	for _, asset := range req.Params.Assets {
+		if !serv.DB2.HasCandles(ctx, asset.Market, asset.Code) {
+			tradingdb2utils.Error("Serv.SimTrading:HasCandles",
+				tradingdb2utils.JSON("asset", asset),
+				zap.Error(ErrNoAsset))
+
+			return nil, ErrNoAsset
+		}
+	}
+
 	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
 	if err != nil {
 		tradingdb2utils.Error("Serv.SimTrading:FixSimTradingParams",

@@ -137,6 +137,29 @@ func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, ts
 	return candles, nil
 }
 
+// HasCandles - has candles
+func (db2 *DB2) HasCandles(ctx context.Context, market string, symbol string) bool {
+	if market == "" || tradingdb2utils.IndexOfStringSlice(db2.cfg.DB2Markets, market, 0) < 0 {
+		return false
+	}
+
+	if symbol == "" {
+		return false
+	}
+
+	hascandles := false
+	err := db2.AnkaDB.ForEachWithPrefix(ctx, market, makeCandlesDB2KeyPrefix(market, symbol), func(key string, buf []byte) error {
+		hascandles = true
+
+		return nil
+	})
+	if err != nil {
+		return false
+	}
+
+	return hascandles
+}
+
 // GetAllData - get all data
 func (db2 *DB2) GetAllData(ctx context.Context) (*TreeMapNode, error) {
 	root := NewTreeMapNode("root")
