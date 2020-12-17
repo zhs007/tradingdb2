@@ -365,6 +365,16 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 		return nil, err
 	}
 
+	for _, asset := range req.Params.Assets {
+		if !serv.DB2.HasCandles(ctx, asset.Market, asset.Code) {
+			tradingdb2utils.Error("Serv.SimTrading:HasCandles",
+				tradingdb2utils.JSON("asset", asset),
+				zap.Error(ErrNoAsset))
+
+			return nil, ErrNoAsset
+		}
+	}
+
 	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
 	if err != nil {
 		tradingdb2utils.Error("Serv.SimTrading:FixSimTradingParams",
@@ -456,18 +466,26 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 			tradingdb2utils.Error("Serv.SimTrading2",
 				zap.Error(err))
 
+			stt.Stop()
+
 			return err
 		}
 
 		if in != nil {
+			var errST error
+
 			serv.simTrading(stream.Context(), stt, in, func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error) {
 				if err != nil {
 					tradingdb2utils.Error("Serv.SimTrading2:simTrading:OnEnd",
 						zap.Error(err))
+
+					errST = err
 				} else if reply != nil {
 					if len(reply.Pnl) > 0 {
 						reply.Pnl[0].Title = req.Params.Title
 
+						// 就算是cache里读出来的，也需要更新cache
+						// 需要更新时间戳
 						err = serv.DBSimTrading.UpdSimTrading(stream.Context(), req.Params, reply.Pnl[0])
 						if err != nil {
 							tradingdb2utils.Error("Serv.SimTrading2:UpdSimTrading",
@@ -475,11 +493,25 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 							return
 						}
+
+						// 不发明细
+						if req.IgnoreTotalReturn > 0 && reply.Pnl[0].Total != nil && reply.Pnl[0].Total.TotalReturns < req.IgnoreTotalReturn {
+							reply.Pnl[0].Total.Values = nil
+						}
 					}
 
 					stream.Send(reply)
 				}
 			})
+
+			if errST != nil {
+				tradingdb2utils.Error("Serv.SimTrading2:simTrading",
+					zap.Error(errST))
+
+				stt.Stop()
+
+				return errST
+			}
 		}
 
 		// if isRecvEnd && !stt.IsRunning() {
@@ -505,6 +537,18 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 		onEnd(req, nil, err)
 
 		return
+	}
+
+	for _, asset := range req.Params.Assets {
+		if !serv.DB2.HasCandles(ctx, asset.Market, asset.Code) {
+			tradingdb2utils.Error("Serv.SimTrading:HasCandles",
+				tradingdb2utils.JSON("asset", asset),
+				zap.Error(ErrNoAsset))
+
+			onEnd(req, nil, ErrNoAsset)
+
+			return
+		}
 	}
 
 	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
