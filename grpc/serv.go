@@ -524,8 +524,8 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 // simTrading - simTrading
 func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTradingTaskEnd) {
-	tradingdb2utils.Info("Serv.simTrading",
-		tradingdb2utils.JSON("request", req))
+	// tradingdb2utils.Info("Serv.simTrading",
+	// 	tradingdb2utils.JSON("request", req))
 
 	err := serv.checkBasicRequest(req.BasicRequest)
 	if err != nil {
@@ -573,7 +573,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 		}
 
 		if pnl != nil {
-			tradingdb2utils.Debug("Serv.simTrading:Cached")
+			// tradingdb2utils.Debug("Serv.simTrading:Cached")
 
 			onEnd(req, &tradingpb.ReplySimTrading{
 				Pnl: []*tradingpb.PNLData{
