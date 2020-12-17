@@ -468,12 +468,19 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 					if len(reply.Pnl) > 0 {
 						reply.Pnl[0].Title = req.Params.Title
 
+						// 就算是cache里读出来的，也需要更新cache
+						// 需要更新时间戳
 						err = serv.DBSimTrading.UpdSimTrading(stream.Context(), req.Params, reply.Pnl[0])
 						if err != nil {
 							tradingdb2utils.Error("Serv.SimTrading2:UpdSimTrading",
 								zap.Error(err))
 
 							return
+						}
+
+						// 不发明细
+						if req.IgnoreTotalReturn > 0 && reply.Pnl[0].Total != nil && reply.Pnl[0].Total.TotalReturns < req.IgnoreTotalReturn {
+							reply.Pnl[0].Total.Values = nil
 						}
 					}
 
