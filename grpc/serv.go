@@ -461,6 +461,8 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 			stt.Stop()
 
+			tradingdb2utils.Debug("Serv.SimTrading2:End")
+
 			return nil
 		}
 
