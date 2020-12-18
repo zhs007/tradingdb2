@@ -474,14 +474,16 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 		}
 
 		if in != nil {
-			var errST error
+			// var errST error
+
+			// 这个接口不是阻塞的，不一定能得到错误出来
 
 			serv.simTrading(stream.Context(), stt, in, func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error) {
 				if err != nil {
 					tradingdb2utils.Error("Serv.SimTrading2:simTrading:OnEnd",
 						zap.Error(err))
 
-					errST = err
+					// errST = err
 				} else if reply != nil {
 					if len(reply.Pnl) > 0 {
 						reply.Pnl[0].Title = req.Params.Title
@@ -502,18 +504,22 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 						}
 					}
 
-					stream.Send(reply)
+					err := stream.Send(reply)
+					if err != nil {
+						tradingdb2utils.Error("Serv.SimTrading2:simTrading:Send",
+							zap.Error(err))
+					}
 				}
 			})
 
-			if errST != nil {
-				tradingdb2utils.Error("Serv.SimTrading2:simTrading",
-					zap.Error(errST))
+			// if errST != nil {
+			// 	tradingdb2utils.Error("Serv.SimTrading2:simTrading",
+			// 		zap.Error(errST))
 
-				stt.Stop()
+			// 	stt.Stop()
 
-				return errST
-			}
+			// 	return errST
+			// }
 		}
 
 		// if isRecvEnd && !stt.IsRunning() {
