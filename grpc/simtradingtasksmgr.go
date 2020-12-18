@@ -57,7 +57,7 @@ func (mgr *SimTradingTasksMgr) AddTask(mgrNode *Node2Mgr, req *tradingpb.Request
 
 	mgr.mapTasks[req.Index] = curtask
 
-	defer mgr.mutexTasks.Unlock()
+	mgr.mutexTasks.Unlock()
 
 	mgrNode.AddTask(int(req.Index), req.Params, func(taskIndex int, params *tradingpb.SimTradingParams, reply *tradingpb.ReplyCalcPNL, err error) {
 		if reply != nil {
