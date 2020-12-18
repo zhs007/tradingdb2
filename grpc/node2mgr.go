@@ -268,6 +268,8 @@ func (mgr *Node2Mgr) nextTask(ctx context.Context) error {
 		go func() {
 			mgr.runTask(ctx, client, curtask)
 		}()
+	} else {
+		client.freeHold()
 	}
 
 	return nil
