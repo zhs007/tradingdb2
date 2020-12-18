@@ -114,6 +114,11 @@ func (client *Node2Client) hold() error {
 	return nil
 }
 
+// freeHold - hold以后，发现没有任务，应该freeHold
+func (client *Node2Client) freeHold() {
+	client.lastTaskNums++
+}
+
 // calcPNL - calcPNL
 func (client *Node2Client) calcPNL(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
 	// if client.lastTaskNums <= 0 {
