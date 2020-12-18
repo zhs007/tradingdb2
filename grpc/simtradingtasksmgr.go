@@ -94,7 +94,7 @@ func (mgr *SimTradingTasksMgr) Start() {
 	}()
 }
 
-// Stop -
+// Stop - 会等待队列任务全部完成
 func (mgr *SimTradingTasksMgr) Stop() {
 	mgr.chanRelease <- 0
 

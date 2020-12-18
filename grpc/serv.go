@@ -423,7 +423,7 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 
 	reply, err := serv.MgrNodes.CalcPNL2(ctx, params, nil)
 	if err != nil {
-		tradingdb2utils.Error("Serv.SimTrading:CalcPNL",
+		tradingdb2utils.Error("Serv.SimTrading:CalcPNL2",
 			zap.Error(err))
 
 		return nil, err
@@ -457,6 +457,8 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
+			tradingdb2utils.Debug("Serv.SimTrading2:EOF")
+
 			stt.Stop()
 
 			return nil

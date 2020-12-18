@@ -77,33 +77,33 @@ func (mgr *Node2Mgr) getFreeClient() *Node2Client {
 	return nil
 }
 
-// CalcPNL - calcPNL
-func (mgr *Node2Mgr) CalcPNL(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
-	var cn *Node2Client
-	ts := time.Now().Unix()
-	for {
-		cn = mgr.getFreeClient()
-		if cn != nil {
-			break
-		}
+// // CalcPNL - calcPNL
+// func (mgr *Node2Mgr) CalcPNL(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
+// 	var cn *Node2Client
+// 	ts := time.Now().Unix()
+// 	for {
+// 		cn = mgr.getFreeClient()
+// 		if cn != nil {
+// 			break
+// 		}
 
-		time.Sleep(time.Second)
+// 		time.Sleep(time.Second)
 
-		curts := time.Now().Unix()
-		if curts-ts > WaitTradingNode2Time {
-			break
-		}
-	}
+// 		curts := time.Now().Unix()
+// 		if curts-ts > WaitTradingNode2Time {
+// 			break
+// 		}
+// 	}
 
-	if cn != nil {
-		return cn.CalcPNL(ctx, params, logger)
-	}
+// 	if cn != nil {
+// 		return cn.CalcPNL(ctx, params, logger)
+// 	}
 
-	tradingdb2utils.Error("Node2Mgr.CalcPNL",
-		zap.Error(ErrNodeNotFree))
+// 	tradingdb2utils.Error("Node2Mgr.CalcPNL",
+// 		zap.Error(ErrNodeNotFree))
 
-	return nil, ErrNodeNotFree
-}
+// 	return nil, ErrNodeNotFree
+// }
 
 // CalcPNL2 - calcPNL
 func (mgr *Node2Mgr) CalcPNL2(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
@@ -243,6 +243,14 @@ func (mgr *Node2Mgr) nextTask(ctx context.Context) error {
 		return nil
 	}
 
+	err := client.hold()
+	if err != nil {
+		tradingdb2utils.Error("Node2Mgr.nextTask:hold",
+			zap.Error(err))
+
+		return nil
+	}
+
 	if len(mgr.tasks) > 0 {
 		curtask := mgr.tasks[0]
 
@@ -271,9 +279,9 @@ func (mgr *Node2Mgr) runTask(ctx context.Context, client *Node2Client, task *Nod
 		tradingdb2utils.JSON("params", task.Params))
 
 	if client != nil {
-		reply, err := client.CalcPNL(ctx, task.Params, nil)
+		reply, err := client.calcPNL(ctx, task.Params, nil)
 		if err != nil {
-			tradingdb2utils.Error("Node2Mgr.runTask:CalcPNL",
+			tradingdb2utils.Error("Node2Mgr.runTask:calcPNL",
 				zap.Error(err))
 
 			mgr.chanTaskResult <- &Node2TaskResult{

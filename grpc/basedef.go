@@ -1,7 +1,7 @@
 package tradingdb2grpc
 
-// TradingNode2RequestOffTime -
-const TradingNode2RequestOffTime = 3
+// TradingNode2TimeOut -
+const TradingNode2TimeOut = 60
 
 // WaitTradingNode2Time -
 const WaitTradingNode2Time = 10

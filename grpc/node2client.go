@@ -99,35 +99,50 @@ func (client *Node2Client) GetServerInfo(ctx context.Context, logger *zap.Logger
 	return reply, nil
 }
 
-// CalcPNL - calcPNL
-func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
+// hold - 得到一个空闲的client后，应该马上hold
+func (client *Node2Client) hold() error {
 	if client.lastTaskNums <= 0 {
-		if time.Now().Unix()-client.lastTs < TradingNode2RequestOffTime {
-			tradingdb2utils.Error("Node2Client.CalcPNL",
-				zap.Error(ErrNodeNotFree))
+		tradingdb2utils.Error("Node2Client.hold",
+			zap.Error(ErrNodeNotFree))
 
-			return nil, ErrNodeNotFree
-		}
-
-		client.GetServerInfo(ctx, logger)
-
-		if client.lastTaskNums <= 0 {
-			return nil, ErrNodeNotFree
-		}
+		return ErrNodeNotFree
 	}
 
 	client.lastTaskNums--
 	client.lastTs = time.Now().Unix()
 
+	return nil
+}
+
+// calcPNL - calcPNL
+func (client *Node2Client) calcPNL(ctx context.Context, params *tradingpb.SimTradingParams, logger *zap.Logger) (*tradingpb.ReplyCalcPNL, error) {
+	// if client.lastTaskNums <= 0 {
+	// 	if time.Now().Unix()-client.lastTs < TradingNode2RequestOffTime {
+	// 		tradingdb2utils.Error("Node2Client.calcPNL",
+	// 			zap.Error(ErrNodeNotFree))
+
+	// 		return nil, ErrNodeNotFree
+	// 	}
+
+	// 	client.GetServerInfo(ctx, logger)
+
+	// 	if client.lastTaskNums <= 0 {
+	// 		return nil, ErrNodeNotFree
+	// 	}
+	// }
+
+	// client.lastTaskNums--
+	// client.lastTs = time.Now().Unix()
+
 	if client.conn == nil || client.client == nil {
 		conn, err := grpc.Dial(client.servAddr, grpc.WithInsecure())
 		if err != nil {
 			if logger != nil {
-				logger.Error("Client.CalcPNL:grpc.Dial",
+				logger.Error("Client.calcPNL:grpc.Dial",
 					zap.String("server address", client.servAddr),
 					zap.Error(err))
 			} else {
-				tradingdb2utils.Error("Client.CalcPNL:grpc.Dial",
+				tradingdb2utils.Error("Client.calcPNL:grpc.Dial",
 					zap.String("server address", client.servAddr),
 					zap.Error(err))
 			}
@@ -151,10 +166,10 @@ func (client *Node2Client) CalcPNL(ctx context.Context, params *tradingpb.SimTra
 	reply, err := client.client.CalcPNL(ctx, req)
 	if err != nil {
 		if logger != nil {
-			logger.Error("Client.CalcPNL:Client.CalcPNL",
+			logger.Error("Client.calcPNL:Client.CalcPNL",
 				zap.Error(err))
 		} else {
-			tradingdb2utils.Error("Client.CalcPNL:Client.CalcPNL",
+			tradingdb2utils.Error("Client.calcPNL:Client.CalcPNL",
 				zap.Error(err))
 		}
 
