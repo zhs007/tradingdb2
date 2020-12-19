@@ -45,8 +45,10 @@ type timestampCacheNode struct {
 }
 
 type timestampCache struct {
-	nodes []*timestampCacheNode
-	ts    int64
+	nodes   []*timestampCacheNode
+	tsStart int64
+	tsEnd   int64
+	ts      int64
 }
 
 // DB2 - database v2
@@ -315,9 +317,13 @@ func (db2 *DB2) GetAssetTimestamp(ctx context.Context, market string, symbol str
 		tsEnd = time.Now().Unix()
 	}
 
+	var rmints int64
+	var rmaxts int64
 	var mints int64
 	var maxts int64
 
+	rmints = tsEnd
+	rmaxts = 0
 	mints = tsEnd
 	maxts = 0
 
@@ -330,6 +336,14 @@ func (db2 *DB2) GetAssetTimestamp(ctx context.Context, market string, symbol str
 		}
 
 		for _, v := range cc.Candles {
+			if rmints > v.Ts {
+				rmints = v.Ts
+			}
+
+			if rmaxts < v.Ts {
+				rmaxts = v.Ts
+			}
+
 			if v.Ts >= tsStart && v.Ts <= tsEnd {
 				if mints > v.Ts {
 					mints = v.Ts
@@ -347,7 +361,7 @@ func (db2 *DB2) GetAssetTimestamp(ctx context.Context, market string, symbol str
 		return 0, 0, err
 	}
 
-	db2.updCacheAssetTimestamp(symbol, is, ie, mints, maxts)
+	db2.updCacheAssetTimestamp(symbol, is, ie, mints, maxts, rmints, rmaxts)
 
 	return mints, maxts, nil
 }
@@ -385,7 +399,15 @@ func (db2 *DB2) FixSimTradingParams(ctx context.Context, params *tradingpb.SimTr
 }
 
 // updCacheAssetTimestamp -
-func (db2 *DB2) updCacheAssetTimestamp(code string, inStartTs int64, inEndTs int64, outStartTs int64, outEndTs int64) {
+func (db2 *DB2) updCacheAssetTimestamp(code string, inStartTs int64, inEndTs int64, outStartTs int64, outEndTs int64, totalStart int64, totalEnd int64) {
+	if inStartTs < totalStart {
+		inStartTs = totalStart
+	}
+
+	if inEndTs > totalEnd {
+		inEndTs = totalEnd
+	}
+
 	cache, isok := db2.mapTimestamp[code]
 	if isok {
 		cache.ts = time.Now().Unix()
@@ -412,7 +434,9 @@ func (db2 *DB2) updCacheAssetTimestamp(code string, inStartTs int64, inEndTs int
 	}
 
 	cache = &timestampCache{
-		ts: time.Now().Unix(),
+		ts:      time.Now().Unix(),
+		tsStart: totalStart,
+		tsEnd:   totalEnd,
 	}
 
 	n := &timestampCacheNode{
@@ -442,6 +466,14 @@ func (db2 *DB2) getCacheAssetTimestamp(code string, inStartTs int64, inEndTs int
 	cache, isok := db2.mapTimestamp[code]
 	if isok {
 		cache.ts = time.Now().Unix()
+
+		if inStartTs < cache.tsStart {
+			inStartTs = cache.tsStart
+		}
+
+		if inEndTs > cache.tsEnd {
+			inEndTs = cache.tsEnd
+		}
 
 		for _, v := range cache.nodes {
 			if v.inStart == inStartTs && v.inEnd == inEndTs {
