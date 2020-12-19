@@ -119,7 +119,7 @@ func (mgr *SimTradingTasksMgr) onMain() {
 			mgr.onTaskEnd(task)
 
 		case <-mgr.chanRelease:
-			tradingdb2utils.Debug("Serv.SimTrading2:EOF")
+			tradingdb2utils.Debug("SimTradingTasksMgr.onMain:EOF")
 
 			isStop = true
 		}
