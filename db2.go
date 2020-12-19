@@ -15,6 +15,12 @@ import (
 const candlesDB2KeyPrefix = "c:"
 const symbolDB2KeyPrefix = "s:"
 
+// assetTimestamp缓存的过期时间
+const assetTimestampTimeout = 30 * 60
+
+// assetTimestamp缓存的检查时间
+const assetTimestampCheckTime = 60 * 60
+
 func makeCandlesDB2Key(market string, symbol string, tag string) string {
 	return tradingdb2utils.AppendString(candlesDB2KeyPrefix, symbol, ":", tag)
 }
@@ -31,10 +37,24 @@ func makeSymbolDB2KeyPrefix(market string) string {
 	return tradingdb2utils.AppendString(symbolDB2KeyPrefix)
 }
 
+type timestampCacheNode struct {
+	inStart  int64
+	inEnd    int64
+	outStart int64
+	outEnd   int64
+}
+
+type timestampCache struct {
+	nodes []*timestampCacheNode
+	ts    int64
+}
+
 // DB2 - database v2
 type DB2 struct {
-	AnkaDB ankadb.AnkaDB
-	cfg    *Config
+	AnkaDB                      ankadb.AnkaDB
+	cfg                         *Config
+	mapTimestamp                map[string]*timestampCache
+	lastAssetTimestampCheckTime int64
 }
 
 // NewDB2 - new DB2
@@ -57,8 +77,10 @@ func NewDB2(cfg *Config) (*DB2, error) {
 	}
 
 	db2 := &DB2{
-		AnkaDB: ankaDB,
-		cfg:    cfg,
+		AnkaDB:                      ankaDB,
+		cfg:                         cfg,
+		mapTimestamp:                make(map[string]*timestampCache),
+		lastAssetTimestampCheckTime: time.Now().Unix(),
 	}
 
 	return db2, err
@@ -77,6 +99,8 @@ func (db2 *DB2) UpdCandles(ctx context.Context, candles *tradingpb.Candles) erro
 	if candles.Tag == "" {
 		return ErrInvalidTag
 	}
+
+	db2.delCacheAssetTimestamp(candles.Symbol)
 
 	buf, err := proto.Marshal(candles)
 	if err != nil {
@@ -279,6 +303,14 @@ func (db2 *DB2) GetAssetTimestamp(ctx context.Context, market string, symbol str
 		return 0, 0, ErrInvalidSymbol
 	}
 
+	os, oe, isok := db2.getCacheAssetTimestamp(symbol, tsStart, tsEnd)
+	if isok {
+		return os, oe, nil
+	}
+
+	is := tsStart
+	ie := tsEnd
+
 	if tsStart > 0 && tsEnd <= 0 {
 		tsEnd = time.Now().Unix()
 	}
@@ -315,6 +347,8 @@ func (db2 *DB2) GetAssetTimestamp(ctx context.Context, market string, symbol str
 		return 0, 0, err
 	}
 
+	db2.updCacheAssetTimestamp(symbol, is, ie, mints, maxts)
+
 	return mints, maxts, nil
 }
 
@@ -348,4 +382,93 @@ func (db2 *DB2) FixSimTradingParams(ctx context.Context, params *tradingpb.SimTr
 	params.EndTs = maxts
 
 	return params, nil
+}
+
+// updCacheAssetTimestamp -
+func (db2 *DB2) updCacheAssetTimestamp(code string, inStartTs int64, inEndTs int64, outStartTs int64, outEndTs int64) {
+	cache, isok := db2.mapTimestamp[code]
+	if isok {
+		cache.ts = time.Now().Unix()
+
+		for _, v := range cache.nodes {
+			if v.inStart == inStartTs && v.inEnd == inEndTs {
+				v.outStart = outStartTs
+				v.outEnd = outEndTs
+
+				return
+			}
+		}
+
+		n := &timestampCacheNode{
+			inStart:  inStartTs,
+			inEnd:    inEndTs,
+			outStart: outStartTs,
+			outEnd:   outEndTs,
+		}
+
+		cache.nodes = append(cache.nodes, n)
+
+		return
+	}
+
+	cache = &timestampCache{
+		ts: time.Now().Unix(),
+	}
+
+	n := &timestampCacheNode{
+		inStart:  inStartTs,
+		inEnd:    inEndTs,
+		outStart: outStartTs,
+		outEnd:   outEndTs,
+	}
+
+	cache.nodes = append(cache.nodes, n)
+
+	db2.mapTimestamp[code] = cache
+}
+
+// delCacheAssetTimestamp -
+func (db2 *DB2) delCacheAssetTimestamp(code string) {
+	_, isok := db2.mapTimestamp[code]
+	if isok {
+		delete(db2.mapTimestamp, code)
+	}
+}
+
+// getCacheAssetTimestamp -
+func (db2 *DB2) getCacheAssetTimestamp(code string, inStartTs int64, inEndTs int64) (int64, int64, bool) {
+	db2.checkCacheAssetTimestamp()
+
+	cache, isok := db2.mapTimestamp[code]
+	if isok {
+		cache.ts = time.Now().Unix()
+
+		for _, v := range cache.nodes {
+			if v.inStart == inStartTs && v.inEnd == inEndTs {
+				return v.outStart, v.outEnd, true
+			}
+		}
+	}
+
+	return -1, -1, false
+}
+
+// checkCacheAssetTimestamp -
+func (db2 *DB2) checkCacheAssetTimestamp() {
+	if db2.lastAssetTimestampCheckTime == 0 {
+		db2.lastAssetTimestampCheckTime = time.Now().Unix()
+
+		return
+	}
+
+	curts := time.Now().Unix()
+	if curts-db2.lastAssetTimestampCheckTime > assetTimestampCheckTime {
+		for k, v := range db2.mapTimestamp {
+			if curts-v.ts > assetTimestampTimeout {
+				delete(db2.mapTimestamp, k)
+			}
+		}
+
+		db2.lastAssetTimestampCheckTime = curts
+	}
 }
