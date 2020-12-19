@@ -138,7 +138,7 @@ func (mgr *Node2Mgr) AddTask(taskIndex int, params *tradingpb.SimTradingParams,
 	mgr.mutexTasks.Unlock()
 
 	tradingdb2utils.Debug("Node2Mgr.AddTask",
-		tradingdb2utils.JSON("params", params))
+		zap.String("title", params.Title))
 
 	mgr.chanAddTask <- 0
 
