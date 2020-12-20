@@ -10,7 +10,7 @@ import (
 )
 
 // FuncOnSimTradingTaskEnd -
-type FuncOnSimTradingTaskEnd func(*tradingpb.RequestSimTrading, *tradingpb.ReplySimTrading, error)
+type FuncOnSimTradingTaskEnd func(*tradingpb.RequestSimTrading, *tradingpb.ReplySimTrading, error, bool)
 
 // SimTradingTask -
 type SimTradingTask struct {
@@ -63,9 +63,9 @@ func (mgr *SimTradingTasksMgr) AddTask(mgrNode *Node2Mgr, req *tradingpb.Request
 		if reply != nil {
 			onEnd(req, &tradingpb.ReplySimTrading{
 				Pnl: reply.Pnl,
-			}, err)
+			}, err, false)
 		} else {
-			onEnd(req, nil, err)
+			onEnd(req, nil, err, false)
 		}
 
 		mgr.chanResult <- curtask

@@ -2,7 +2,6 @@ package tradingdb2
 
 import (
 	"context"
-	"crypto/sha1"
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
@@ -116,11 +115,11 @@ func (cache *SimTradingDBCache) hashParams(params *tradingpb.SimTradingParams) (
 		return "", err
 	}
 
-	h := sha1.New()
-	h.Write(buf)
-	bs := h.Sum(nil)
+	// h := sha1.New()
+	// h.Write(buf)
+	// bs := h.Sum(nil)
 
-	return fmt.Sprintf("%x", bs), nil
+	return fmt.Sprintf("%x", buf), nil
 }
 
 // getSimTrading - get PNLData

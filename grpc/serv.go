@@ -480,7 +480,7 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 			// 这个接口不是阻塞的，不一定能得到错误出来
 
-			serv.simTrading(stream.Context(), stt, in, func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error) {
+			serv.simTrading(stream.Context(), stt, in, func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool) {
 				if err != nil {
 					tradingdb2utils.Error("Serv.SimTrading2:simTrading:OnEnd",
 						zap.Error(err))
@@ -490,14 +490,15 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 					if len(reply.Pnl) > 0 {
 						reply.Pnl[0].Title = req.Params.Title
 
-						// 就算是cache里读出来的，也需要更新cache
-						// 需要更新时间戳
-						err = serv.DBSimTrading.UpdSimTrading(stream.Context(), req.Params, reply.Pnl[0])
-						if err != nil {
-							tradingdb2utils.Error("Serv.SimTrading2:UpdSimTrading",
-								zap.Error(err))
+						if !inCache {
+							// 如果不是incache，才需要更新缓存
+							err = serv.DBSimTrading.UpdSimTrading(stream.Context(), req.Params, reply.Pnl[0])
+							if err != nil {
+								tradingdb2utils.Error("Serv.SimTrading2:UpdSimTrading",
+									zap.Error(err))
 
-							return
+								return
+							}
 						}
 
 						// 不发明细
@@ -544,7 +545,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 			zap.Strings("tokens", serv.Cfg.Tokens),
 			zap.Error(err))
 
-		onEnd(req, nil, err)
+		onEnd(req, nil, err, false)
 
 		return
 	}
@@ -555,7 +556,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 				tradingdb2utils.JSON("asset", asset),
 				zap.Error(ErrNoAsset))
 
-			onEnd(req, nil, ErrNoAsset)
+			onEnd(req, nil, ErrNoAsset, false)
 
 			return
 		}
@@ -566,7 +567,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 		tradingdb2utils.Error("Serv.simTrading:FixSimTradingParams",
 			zap.Error(err))
 
-		onEnd(req, nil, err)
+		onEnd(req, nil, err, false)
 
 		return
 	}
@@ -577,7 +578,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 			tradingdb2utils.Error("Serv.simTrading:GetSimTrading",
 				zap.Error(err))
 
-			onEnd(req, nil, err)
+			onEnd(req, nil, err, false)
 
 			return
 		}
@@ -589,7 +590,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 				Pnl: []*tradingpb.PNLData{
 					pnl,
 				},
-			}, err)
+			}, err, true)
 
 			return
 		}
