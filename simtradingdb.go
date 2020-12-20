@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -22,7 +23,9 @@ func makeSimTradingNodesDBKey(strategy string, market string, symbol string, tsS
 
 // SimTradingDB - database
 type SimTradingDB struct {
-	AnkaDB ankadb.AnkaDB
+	AnkaDB     ankadb.AnkaDB
+	lastCache  *SimTradingDBCache
+	mutexCache sync.Mutex
 }
 
 // NewSimTradingDB - new SimTradingDB
@@ -51,6 +54,14 @@ func NewSimTradingDB(dbpath string, httpAddr string, engine string) (*SimTrading
 
 // UpdSimTrading - update simulation trading
 func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.SimTradingParams, pnldata *tradingpb.PNLData) error {
+	db.mutexCache.Lock()
+
+	if db.lastCache != nil && db.lastCache.isMine(params) {
+		db.lastCache = nil
+	}
+
+	db.mutexCache.Unlock()
+
 	cache, err := db.getSimTradingNodes(ctx, params)
 	if err != nil {
 		tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:getSimTradingNodes",
@@ -124,6 +135,40 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 // GetSimTrading - get candles
 func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.SimTradingParams) (
 	*tradingpb.PNLData, error) {
+
+	db.mutexCache.Lock()
+
+	if db.lastCache == nil || db.lastCache.isMine(params) {
+		cache, err := newSimTradingDBCache(ctx, db, params)
+		if err != nil {
+			db.mutexCache.Unlock()
+
+			tradingdb2utils.Warn("SimTradingDB.GetSimTrading:newSimTradingDBCache",
+				zap.Error(err))
+
+			return nil, err
+		}
+
+		db.lastCache = cache
+	}
+
+	if db.lastCache != nil {
+		pnldata, err := db.lastCache.getSimTrading(ctx, db, params)
+		if err != nil {
+			db.mutexCache.Unlock()
+
+			tradingdb2utils.Warn("SimTradingDB.GetSimTrading:getSimTrading",
+				zap.Error(err))
+
+			return nil, err
+		}
+
+		db.mutexCache.Unlock()
+
+		return pnldata, nil
+	}
+
+	db.mutexCache.Unlock()
 
 	// tradingdb2utils.Debug("SimTradingDB.GetSimTrading",
 	// 	tradingdb2utils.JSON("params", params))

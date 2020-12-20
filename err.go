@@ -10,6 +10,9 @@ var (
 	// ErrInvalidTag - invalid tag
 	ErrInvalidTag = errors.New("invalid tag")
 
+	// ErrInvalidSimTradingParams - invalid SimTradingParams
+	ErrInvalidSimTradingParams = errors.New("invalid SimTradingParams")
+
 	// ErrInvalidUpdCandlesParams - invalid UpdCandles Params
 	ErrInvalidUpdCandlesParams = errors.New("invalid UpdCandles Params")
 
