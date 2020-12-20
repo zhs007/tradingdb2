@@ -138,7 +138,7 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 
 	db.mutexCache.Lock()
 
-	if db.lastCache == nil || db.lastCache.isMine(params) {
+	if db.lastCache == nil || !db.lastCache.isMine(params) {
 		cache, err := newSimTradingDBCache(ctx, db, params)
 		if err != nil {
 			db.mutexCache.Unlock()
