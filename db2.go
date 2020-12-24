@@ -71,6 +71,9 @@ func NewDB2(cfg *Config) (*DB2, error) {
 			Engine: cfg.DBEngine,
 			PathDB: v,
 		})
+
+		tradingdb2utils.Info("NewDB2 - ",
+			zap.String("market", v))
 	}
 
 	ankaDB, err := ankadb.NewAnkaDB(dbcfg, nil)
