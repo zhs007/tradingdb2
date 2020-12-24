@@ -98,7 +98,9 @@ func (serv *Serv) Stop() {
 
 // checkBasicRequest - check BasicRequest
 func (serv *Serv) checkBasicRequest(req *tradingpb.BasicRequestData) error {
-	if req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0 {
+	if req != nil &&
+		(req.Token == "" || tradingdb2utils.IndexOfStringSlice(serv.Cfg.Tokens, req.Token, 0) < 0) {
+
 		return tradingdb2.ErrInvalidToken
 	}
 
