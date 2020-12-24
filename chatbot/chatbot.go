@@ -110,6 +110,9 @@ func Start(ctx context.Context, cfgfn string, chatbotcfgfn string) error {
 		return err
 	}
 
+	tradingdb2utils.Info("Start:Config",
+		zap.Int("tokens", len(cfg.Tokens)))
+
 	err = basicchatbot.InitBasicChatBot(*chatbotcfg)
 	if err != nil {
 		tradingdb2utils.Warn("Start:InitBasicChatBot",
