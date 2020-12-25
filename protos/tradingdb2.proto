@@ -5,7 +5,7 @@ import "trading2.proto";
 
 // Candle - candle
 message Candle {
-    int64 ts = 1;
+    int64 ts = 1;                   // UTC时间戳
     int64 open = 2;
     int64 close = 3;
     int64 high = 4;
@@ -18,6 +18,12 @@ message Candle {
     int64 turnover = 11;
     double homeNotional = 12;
     double foreignNotional = 13;
+    int64 totalMoney = 14;          // 总金额
+    bool paused = 15;               // 是否停盘
+    int64 highLimit = 16;           // 上涨限制
+    int64 lowLimit = 17;            // 下跌限制
+    int64 avg = 18;                 // 平均价格
+    int64 preClose = 19;            // 前一天的close价格
 }
 
 // Candles - candles
