@@ -163,7 +163,8 @@ message ReplySimTrading {
 
 // TradingDB2 - TradingDB2 service
 service TradingDB2 {
-	// updCandles - update candles
+    // updCandles - update candles
+    //      这个接口现在是覆盖的，不会和原有数据做任何合并操作
     rpc updCandles(stream RequestUpdCandles) returns (ReplyUpdCandles) {}
 	// getCandles - get candles
     rpc getCandles(RequestGetCandles) returns (stream ReplyGetCandles) {}
