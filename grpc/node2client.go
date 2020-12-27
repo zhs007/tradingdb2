@@ -172,10 +172,12 @@ func (client *Node2Client) calcPNL(ctx context.Context, params *tradingpb.SimTra
 	if err != nil {
 		if logger != nil {
 			logger.Error("Client.calcPNL:Client.CalcPNL",
-				zap.Error(err))
+				zap.Error(err),
+				zap.String("servAddr", client.servAddr))
 		} else {
 			tradingdb2utils.Error("Client.calcPNL:Client.CalcPNL",
-				zap.Error(err))
+				zap.Error(err),
+				zap.String("servAddr", client.servAddr))
 		}
 
 		// if error, reset
