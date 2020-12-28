@@ -149,3 +149,20 @@ func (cache *SimTradingDBCache) getSimTrading(ctx context.Context, db *SimTradin
 
 	return db.getPNLData(ctx, v.node.Key)
 }
+
+// addSimTrading - add simulation trading
+func (cache *SimTradingDBCache) addSimTrading(params *tradingpb.SimTradingParams, node *tradingpb.SimTradingCacheNode) error {
+	hash, err := cache.hashParams(params)
+	if err != nil {
+		tradingdb2utils.Warn("SimTradingDBCache.addSimTrading:hashParams",
+			zap.Error(err))
+
+		return err
+	}
+
+	cache.mapCache[hash] = &SimTradingDBCacheNode{
+		node: node,
+	}
+
+	return nil
+}
