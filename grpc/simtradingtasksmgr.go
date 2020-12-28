@@ -4,13 +4,14 @@ import (
 	"sync"
 	"time"
 
+	tradingdb2 "github.com/zhs007/tradingdb2"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	"go.uber.org/zap"
 )
 
 // FuncOnSimTradingTaskEnd -
-type FuncOnSimTradingTaskEnd func(*tradingpb.RequestSimTrading, *tradingpb.ReplySimTrading, error, bool)
+type FuncOnSimTradingTaskEnd func(*tradingpb.RequestSimTrading, *tradingpb.ReplySimTrading, error, bool, *tradingdb2.SimTradingDBCacheObj)
 
 // SimTradingTask -
 type SimTradingTask struct {
@@ -37,7 +38,7 @@ func NewSimTradingTasksMgr() *SimTradingTasksMgr {
 }
 
 // AddTask -
-func (mgr *SimTradingTasksMgr) AddTask(mgrNode *Node2Mgr, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTradingTaskEnd) error {
+func (mgr *SimTradingTasksMgr) AddTask(mgrNode *Node2Mgr, dbcache *tradingdb2.SimTradingDBCacheObj, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTradingTaskEnd) error {
 	mgr.mutexTasks.Lock()
 
 	_, isok := mgr.mapTasks[req.Index]
@@ -63,9 +64,9 @@ func (mgr *SimTradingTasksMgr) AddTask(mgrNode *Node2Mgr, req *tradingpb.Request
 		if reply != nil {
 			onEnd(req, &tradingpb.ReplySimTrading{
 				Pnl: reply.Pnl,
-			}, err, false)
+			}, err, false, dbcache)
 		} else {
-			onEnd(req, nil, err, false)
+			onEnd(req, nil, err, false, dbcache)
 		}
 
 		mgr.chanResult <- curtask
