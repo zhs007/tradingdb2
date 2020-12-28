@@ -56,8 +56,19 @@ func NewSimTradingDB(dbpath string, httpAddr string, engine string) (*SimTrading
 func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.SimTradingParams, pnldata *tradingpb.PNLData) error {
 	db.mutexCache.Lock()
 
+	isupdcache := false
 	if db.lastCache != nil && db.lastCache.isMine(params) {
-		db.lastCache = nil
+		pnl, err := db.lastCache.getSimTrading(ctx, db, params)
+		if err != nil {
+			tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:getSimTrading",
+				zap.Error(err))
+		}
+
+		if pnl == nil {
+			db.lastCache = nil
+		} else {
+			isupdcache = true
+		}
 	}
 
 	db.mutexCache.Unlock()
@@ -128,6 +139,18 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 
 		return err
 	}
+
+	db.mutexCache.Lock()
+
+	if isupdcache {
+		err = db.lastCache.addSimTrading(params, node)
+		if err != nil {
+			tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:addSimTrading",
+				zap.Error(err))
+		}
+	}
+
+	db.mutexCache.Unlock()
 
 	return nil
 }
