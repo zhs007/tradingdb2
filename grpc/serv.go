@@ -453,6 +453,7 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 	// isRecvEnd := false
 
 	stt := NewSimTradingTasksMgr()
+	dbcache := &tradingdb2.SimTradingDBCacheObj{}
 
 	stt.Start()
 
@@ -478,44 +479,45 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 		}
 
 		if in != nil {
-			// var errST error
-
 			// 这个接口不是阻塞的，不一定能得到错误出来
 
-			serv.simTrading(stream.Context(), stt, in, func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool) {
-				if err != nil {
-					tradingdb2utils.Error("Serv.SimTrading2:simTrading:OnEnd",
-						zap.Error(err))
+			serv.simTrading(stream.Context(), stt, dbcache, in,
+				func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool, dbcache *tradingdb2.SimTradingDBCacheObj) {
+					if err != nil {
+						tradingdb2utils.Error("Serv.SimTrading2:simTrading:OnEnd",
+							zap.Error(err))
 
-					// errST = err
-				} else if reply != nil {
-					if len(reply.Pnl) > 0 {
-						reply.Pnl[0].Title = req.Params.Title
+						// errST = err
+					} else if reply != nil {
+						if len(reply.Pnl) > 0 {
+							reply.Pnl[0].Title = req.Params.Title
 
-						if !inCache {
-							// 如果不是incache，才需要更新缓存
-							err = serv.DBSimTrading.UpdSimTrading(stream.Context(), req.Params, reply.Pnl[0])
-							if err != nil {
-								tradingdb2utils.Error("Serv.SimTrading2:UpdSimTrading",
-									zap.Error(err))
+							if !inCache {
+								// 如果不是incache，才需要更新缓存
+								newdbcache, err := serv.DBSimTrading.UpdSimTradingEx(stream.Context(), req.Params, reply.Pnl[0], dbcache.Cache)
+								dbcache.Cache = newdbcache
 
-								return
+								if err != nil {
+									tradingdb2utils.Error("Serv.SimTrading2:UpdSimTrading",
+										zap.Error(err))
+
+									return
+								}
+							}
+
+							// 不发明细
+							if req.IgnoreTotalReturn > 0 && reply.Pnl[0].Total != nil && reply.Pnl[0].Total.TotalReturns < req.IgnoreTotalReturn {
+								reply.Pnl[0].Total.Values = nil
 							}
 						}
 
-						// 不发明细
-						if req.IgnoreTotalReturn > 0 && reply.Pnl[0].Total != nil && reply.Pnl[0].Total.TotalReturns < req.IgnoreTotalReturn {
-							reply.Pnl[0].Total.Values = nil
+						err := stream.Send(reply)
+						if err != nil {
+							tradingdb2utils.Error("Serv.SimTrading2:simTrading:Send",
+								zap.Error(err))
 						}
 					}
-
-					err := stream.Send(reply)
-					if err != nil {
-						tradingdb2utils.Error("Serv.SimTrading2:simTrading:Send",
-							zap.Error(err))
-					}
-				}
-			})
+				})
 
 			// if errST != nil {
 			// 	tradingdb2utils.Error("Serv.SimTrading2:simTrading",
@@ -536,7 +538,8 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 }
 
 // simTrading - simTrading
-func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTradingTaskEnd) {
+func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, dbcache *tradingdb2.SimTradingDBCacheObj,
+	req *tradingpb.RequestSimTrading, onEnd FuncOnSimTradingTaskEnd) {
 	// tradingdb2utils.Info("Serv.simTrading",
 	// 	tradingdb2utils.JSON("request", req))
 
@@ -547,7 +550,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 			zap.Strings("tokens", serv.Cfg.Tokens),
 			zap.Error(err))
 
-		onEnd(req, nil, err, false)
+		onEnd(req, nil, err, false, dbcache)
 
 		return
 	}
@@ -558,7 +561,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 				tradingdb2utils.JSON("asset", asset),
 				zap.Error(ErrNoAsset))
 
-			onEnd(req, nil, ErrNoAsset, false)
+			onEnd(req, nil, ErrNoAsset, false, dbcache)
 
 			return
 		}
@@ -569,18 +572,20 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 		tradingdb2utils.Error("Serv.simTrading:FixSimTradingParams",
 			zap.Error(err))
 
-		onEnd(req, nil, err, false)
+		onEnd(req, nil, err, false, dbcache)
 
 		return
 	}
 
 	if !req.IgnoreCache {
-		pnl, err := serv.DBSimTrading.GetSimTrading(ctx, params)
+		newdbcache, pnl, err := serv.DBSimTrading.GetSimTradingEx(ctx, params, dbcache.Cache)
+		dbcache.Cache = newdbcache
+
 		if err != nil {
 			tradingdb2utils.Error("Serv.simTrading:GetSimTrading",
 				zap.Error(err))
 
-			onEnd(req, nil, err, false)
+			onEnd(req, nil, err, false, dbcache)
 
 			return
 		}
@@ -592,15 +597,17 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 				Pnl: []*tradingpb.PNLData{
 					pnl,
 				},
-			}, err, true)
+			}, err, true, dbcache)
 
 			return
 		}
 	}
 
-	err = mgrTasks.AddTask(serv.MgrNodes, req, onEnd)
+	err = mgrTasks.AddTask(serv.MgrNodes, dbcache, req, onEnd)
 	if err != nil {
 		tradingdb2utils.Error("Serv.simTrading:AddTask",
 			zap.Error(err))
 	}
+
+	return
 }

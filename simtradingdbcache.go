@@ -3,6 +3,8 @@ package tradingdb2
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
@@ -24,6 +26,12 @@ type SimTradingDBCache struct {
 	StartTs      int64
 	EndTs        int64
 	pbcache      *tradingpb.SimTradingCache
+	mutexCache   sync.Mutex
+}
+
+// SimTradingDBCacheObj -
+type SimTradingDBCacheObj struct {
+	Cache *SimTradingDBCache
 }
 
 func newSimTradingDBCache(ctx context.Context, db *SimTradingDB, params *tradingpb.SimTradingParams) (*SimTradingDBCache, error) {
@@ -74,6 +82,9 @@ func (cache *SimTradingDBCache) init(ctx context.Context, db *SimTradingDB, para
 	if pbcache == nil {
 		return nil
 	}
+
+	cache.mutexCache.Lock()
+	defer cache.mutexCache.Unlock()
 
 	for _, v := range pbcache.Nodes {
 		hash, err := cache.hashParams(v.Params)
@@ -134,10 +145,18 @@ func (cache *SimTradingDBCache) getSimTrading(ctx context.Context, db *SimTradin
 		return nil, err
 	}
 
+	cache.mutexCache.Lock()
+
 	v, isok := cache.mapCache[hash]
 	if !isok {
+		cache.mutexCache.Unlock()
+
 		return nil, nil
 	}
+
+	v.node.LastTs = time.Now().Unix()
+
+	cache.mutexCache.Unlock()
 
 	err = db.updSimTradingNodes(ctx, params, cache.pbcache)
 	if err != nil {
@@ -150,6 +169,31 @@ func (cache *SimTradingDBCache) getSimTrading(ctx context.Context, db *SimTradin
 	return db.getPNLData(ctx, v.node.Key)
 }
 
+// hasSimTrading - has PNLData
+func (cache *SimTradingDBCache) hasSimTrading(ctx context.Context, db *SimTradingDB, params *tradingpb.SimTradingParams) (bool, error) {
+
+	hash, err := cache.hashParams(params)
+	if err != nil {
+		tradingdb2utils.Warn("SimTradingDBCache.getSimTrading:hasSimTrading",
+			zap.Error(err))
+
+		return false, err
+	}
+
+	cache.mutexCache.Lock()
+
+	_, isok := cache.mapCache[hash]
+	if !isok {
+		cache.mutexCache.Unlock()
+
+		return false, nil
+	}
+
+	cache.mutexCache.Unlock()
+
+	return true, nil
+}
+
 // addSimTrading - add simulation trading
 func (cache *SimTradingDBCache) addSimTrading(params *tradingpb.SimTradingParams, node *tradingpb.SimTradingCacheNode) error {
 	hash, err := cache.hashParams(params)
@@ -160,9 +204,15 @@ func (cache *SimTradingDBCache) addSimTrading(params *tradingpb.SimTradingParams
 		return err
 	}
 
+	cache.mutexCache.Lock()
+
 	cache.mapCache[hash] = &SimTradingDBCacheNode{
 		node: node,
 	}
+
+	cache.pbcache.Nodes = append(cache.pbcache.Nodes, node)
+
+	cache.mutexCache.Unlock()
 
 	return nil
 }
