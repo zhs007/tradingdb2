@@ -158,15 +158,29 @@ func (cache *SimTradingDBCache) getSimTrading(ctx context.Context, db *SimTradin
 
 	cache.mutexCache.Unlock()
 
-	err = db.updSimTradingNodes(ctx, params, cache.pbcache)
-	if err != nil {
-		tradingdb2utils.Warn("SimTradingDBCache.getSimTrading:updSimTradingNodes",
-			zap.Error(err))
+	// err = db.updSimTradingNodes(ctx, params, cache.pbcache)
+	// if err != nil {
+	// 	tradingdb2utils.Warn("SimTradingDBCache.getSimTrading:updSimTradingNodes",
+	// 		zap.Error(err))
 
-		return nil, err
-	}
+	// 	return nil, err
+	// }
 
 	return db.getPNLData(ctx, v.node.Key)
+}
+
+// SaveCache - save cache to db on ending
+func (cache *SimTradingDBCache) SaveCache(ctx context.Context, db *SimTradingDB) error {
+	err := db.updSimTradingNodesEx(ctx, cache.StrategyName, cache.AssetMarket,
+		cache.AssetCode, cache.StartTs, cache.EndTs, cache.pbcache)
+	if err != nil {
+		tradingdb2utils.Warn("SimTradingDBCache.getSimTrading:updSimTradingNodesEx",
+			zap.Error(err))
+
+		return err
+	}
+
+	return nil
 }
 
 // hasSimTrading - has PNLData
