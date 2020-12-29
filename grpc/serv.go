@@ -500,6 +500,12 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 				}
 			}
 
+			err = dbcache.Cache.SaveCache(stream.Context(), serv.DBSimTrading)
+			if err != nil {
+				tradingdb2utils.Error("Serv.SimTrading2:simTrading:SaveCache",
+					zap.Error(err))
+			}
+
 			tradingdb2utils.Debug("Serv.SimTrading2:End")
 
 			return nil

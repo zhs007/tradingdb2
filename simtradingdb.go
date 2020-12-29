@@ -367,6 +367,23 @@ func (db *SimTradingDB) updSimTradingNodes(ctx context.Context, params *tradingp
 	return nil
 }
 
+// updSimTradingNodesEx - update simtrading nodes
+func (db *SimTradingDB) updSimTradingNodesEx(ctx context.Context, name string, market string, code string, startTs int64, endTs int64, cache *tradingpb.SimTradingCache) error {
+	key := makeSimTradingNodesDBKey(name, market, code, startTs, endTs)
+
+	buf, err := proto.Marshal(cache)
+	if err != nil {
+		return err
+	}
+
+	err = db.AnkaDB.Set(ctx, simtradingDBName, key, buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // isSameSimTradingParams - is same SimTradingParams
 func (db *SimTradingDB) isSameSimTradingParams(v0 *tradingpb.SimTradingParams, v1 *tradingpb.SimTradingParams) bool {
 	if len(v0.Strategies) == len(v1.Strategies) {
