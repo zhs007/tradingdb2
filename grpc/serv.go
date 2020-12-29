@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"sort"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
@@ -448,12 +449,39 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 	return res, nil
 }
 
+// procIgnoreReply - simulation trading
+func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, ignoreTotalReturn float32, minNums int) []*tradingpb.ReplySimTrading {
+	if len(lstIgnore) <= minNums {
+		return lstIgnore
+	}
+
+	sort.SliceStable(lstIgnore, func(i, j int) bool {
+		if len(lstIgnore[i].Pnl) > 0 || len(lstIgnore[j].Pnl) > 0 {
+			return true
+		}
+
+		return lstIgnore[i].Pnl[0].Total.TotalReturns > lstIgnore[j].Pnl[0].Total.TotalReturns
+	})
+
+	var newlst []*tradingpb.ReplySimTrading
+
+	for i := 0; i < minNums; i++ {
+		newlst = append(newlst, lstIgnore[i])
+	}
+
+	return newlst
+}
+
 // SimTrading2 - simulation trading
 func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) error {
-	// isRecvEnd := false
-
 	stt := NewSimTradingTasksMgr()
 	dbcache := &tradingdb2.SimTradingDBCacheObj{}
+
+	// ignoreTotalReturn := 1.0 // 忽略总回报低于这个值的数据返回，主要用于大批量训练，减少数据处理量。但实际运算会执行，且cache数据是完整的
+	minNums := 10 // 被忽略的数据里，还是保留这个条数返回，默认是10
+	// sortBy := "totalreturn" // 按什么字段来排序，默认是 totalreturn
+
+	var lstIgnore []*tradingpb.ReplySimTrading
 
 	stt.Start()
 
@@ -463,6 +491,14 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 			tradingdb2utils.Debug("Serv.SimTrading2:EOF")
 
 			stt.Stop()
+
+			for _, v := range lstIgnore {
+				err := stream.Send(v)
+				if err != nil {
+					tradingdb2utils.Error("Serv.SimTrading2:simTrading:SendIgnore",
+						zap.Error(err))
+				}
+			}
 
 			tradingdb2utils.Debug("Serv.SimTrading2:End")
 
@@ -479,7 +515,19 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 		}
 
 		if in != nil {
-			// 这个接口不是阻塞的，不一定能得到错误出来
+			// if in.IgnoreTotalReturn != 0 {
+			// 	ignoreTotalReturn = float64(in.IgnoreTotalReturn)
+			// }
+
+			if in.MinNums > 0 {
+				minNums = int(in.MinNums)
+			}
+
+			// if in.SortBy != "" {
+			// 	sortBy = in.SortBy
+			// }
+
+			// 这个接口不是阻塞的，错误没法直接传递到外面来
 
 			serv.simTrading(stream.Context(), stt, dbcache, in,
 				func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool, dbcache *tradingdb2.SimTradingDBCacheObj) {
@@ -489,6 +537,8 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 						// errST = err
 					} else if reply != nil {
+						isSendNow := true
+
 						if len(reply.Pnl) > 0 {
 							reply.Pnl[0].Title = req.Params.Title
 
@@ -507,34 +557,26 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 							// 不发明细
 							if req.IgnoreTotalReturn > 0 && reply.Pnl[0].Total != nil && reply.Pnl[0].Total.TotalReturns < req.IgnoreTotalReturn {
-								reply.Pnl[0].Total.Values = nil
+								isSendNow = false
+
+								lstIgnore = append(lstIgnore, reply)
+								if len(lstIgnore) > minNums*2 {
+									lstIgnore = serv.procIgnoreReply(lstIgnore, req.IgnoreTotalReturn, minNums)
+								}
 							}
 						}
 
-						err := stream.Send(reply)
-						if err != nil {
-							tradingdb2utils.Error("Serv.SimTrading2:simTrading:Send",
-								zap.Error(err))
+						if isSendNow {
+							err := stream.Send(reply)
+							if err != nil {
+								tradingdb2utils.Error("Serv.SimTrading2:simTrading:Send",
+									zap.Error(err))
+							}
 						}
 					}
 				})
-
-			// if errST != nil {
-			// 	tradingdb2utils.Error("Serv.SimTrading2:simTrading",
-			// 		zap.Error(errST))
-
-			// 	stt.Stop()
-
-			// 	return errST
-			// }
 		}
-
-		// if isRecvEnd && !stt.IsRunning() {
-		// 	return nil
-		// }
 	}
-
-	// return nil
 }
 
 // simTrading - simTrading
