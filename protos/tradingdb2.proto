@@ -151,7 +151,10 @@ message RequestSimTrading {
     SimTradingParams params = 2;
     bool ignoreCache = 3;                   // 忽略cache，重新计算
     int32 index = 4;                        // simtradings时用于关联请求结果用的
-    float ignoreTotalReturn = 5;            // 忽略总回报低于这个值的明细返回，主要用于大批量训练，减少数据处理量。但实际运算会执行，且cache数据是完整的
+    float ignoreTotalReturn = 5;            // 忽略总回报低于这个值的数据返回，主要用于大批量训练，减少数据处理量。但实际运算会执行，且cache数据是完整的
+    int32 minNums = 6;                      // 被忽略的数据里，还是保留这个条数返回，默认是10
+    int32 maxNums = 7 [deprecated = true];  // 最大的消息数量，超过这个数量就不要了，这个不会影响符合ignoreTotalReturn条件的
+    string sortBy = 8;                      // 按什么字段来排序，默认是 totalreturn
 }
 
 // ReplySimTrading - reply simTrading
