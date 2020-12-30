@@ -208,8 +208,8 @@ func (mgr *Node2Mgr) Stop() error {
 
 // onTaskEnd -
 func (mgr *Node2Mgr) onTaskEnd(result *Node2TaskResult) error {
-	tradingdb2utils.Debug("Node2Mgr.onTaskEnd",
-		tradingdb2utils.JSON("result", result))
+	// tradingdb2utils.Debug("Node2Mgr.onTaskEnd",
+	// 	tradingdb2utils.JSON("result", result))
 
 	if result != nil {
 		if result.Task != nil {
