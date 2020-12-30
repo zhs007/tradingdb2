@@ -81,6 +81,9 @@ message SymbolInfo {
     string market = 1;
     string symbol = 2;
     Fund fund = 3;
+    string name = 4;            // 名称，一般是缩写
+    string fullname = 5;        // 全名，识别性更强的名字
+    string type = 6;            // 类型，指数、基金等
 }
 
 // RequestUpdCandles - request UpdCandles
