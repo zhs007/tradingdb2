@@ -16,16 +16,16 @@ type FuncOnCalcPNLEnd func(int, *tradingpb.SimTradingParams, *tradingpb.ReplyCal
 
 // Node2Task -
 type Node2Task struct {
-	TaskIndex int
-	Params    *tradingpb.SimTradingParams
-	OnEnd     FuncOnCalcPNLEnd
+	TaskIndex int                         `json:"taskindex"`
+	Params    *tradingpb.SimTradingParams `json:"params"`
+	OnEnd     FuncOnCalcPNLEnd            `json:"-"`
 }
 
 // Node2TaskResult -
 type Node2TaskResult struct {
-	Task  *Node2Task
-	Reply *tradingpb.ReplyCalcPNL
-	Err   error
+	Task  *Node2Task              `json:"task"`
+	Reply *tradingpb.ReplyCalcPNL `json:"reply"`
+	Err   error                   `json:"err"`
 }
 
 // Node2Mgr - Node2 manager
@@ -110,6 +110,8 @@ func (mgr *Node2Mgr) CalcPNL2(ctx context.Context, params *tradingpb.SimTradingP
 	chanCur := make(chan *Node2TaskResult)
 
 	mgr.AddTask(-1, params, func(taskIndex int, params *tradingpb.SimTradingParams, reply *tradingpb.ReplyCalcPNL, err error) {
+		tradingdb2utils.Debug("Node2Mgr.CalcPNL2:onEnd")
+
 		chanCur <- &Node2TaskResult{
 			Reply: reply,
 			Err:   err,
@@ -117,6 +119,8 @@ func (mgr *Node2Mgr) CalcPNL2(ctx context.Context, params *tradingpb.SimTradingP
 	}, logger)
 
 	ret := <-chanCur
+
+	tradingdb2utils.Debug("Node2Mgr.CalcPNL2:chanCur")
 
 	return ret.Reply, ret.Err
 }
@@ -204,10 +208,15 @@ func (mgr *Node2Mgr) Stop() error {
 
 // onTaskEnd -
 func (mgr *Node2Mgr) onTaskEnd(result *Node2TaskResult) error {
+	tradingdb2utils.Debug("Node2Mgr.onTaskEnd",
+		tradingdb2utils.JSON("result", result))
+
 	if result != nil {
 		if result.Task != nil {
 			if result.Task.OnEnd != nil {
 				result.Task.OnEnd(result.Task.TaskIndex, result.Task.Params, result.Reply, result.Err)
+			} else {
+				tradingdb2utils.Warn("Node2Mgr.onTaskEnd non OnEnd")
 			}
 
 			mgr.mutexTasks.Lock()
