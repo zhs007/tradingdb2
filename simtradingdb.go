@@ -491,11 +491,11 @@ func (db *SimTradingDB) ClearCache(ctx context.Context) error {
 				return err
 			}
 
-			ischg := false
+			delnums := 0
 			newcache := &tradingpb.SimTradingCache{}
 			for _, v := range cache.Nodes {
 				if curts-v.LastTs > SimTradingCacheTimeOut {
-					ischg = true
+					delnums++
 
 					err = db.AnkaDB.Delete(ctx, simtradingDBName, v.Key)
 
@@ -507,7 +507,7 @@ func (db *SimTradingDB) ClearCache(ctx context.Context) error {
 				}
 			}
 
-			if ischg {
+			if delnums > 0 {
 				buf, err := proto.Marshal(newcache)
 				if err != nil {
 					tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach:Marshal",
@@ -521,6 +521,12 @@ func (db *SimTradingDB) ClearCache(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
+
+				tradingdb2utils.Info("SimTradingDB.ClearCache",
+					zap.String("key", key),
+					zap.Int("nums", delnums),
+					zap.Int("firstnums", len(cache.Nodes)),
+					zap.Int("lastnums", len(newcache.Nodes)))
 			}
 
 			return nil
