@@ -456,7 +456,7 @@ func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, ignore
 	}
 
 	sort.SliceStable(lstIgnore, func(i, j int) bool {
-		if len(lstIgnore[i].Pnl) > 0 || len(lstIgnore[j].Pnl) > 0 {
+		if len(lstIgnore[i].Pnl) <= 0 || len(lstIgnore[j].Pnl) <= 0 {
 			return true
 		}
 
