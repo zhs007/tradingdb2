@@ -32,6 +32,7 @@ message Candles {
     string symbol = 2;
     string tag = 3;
     repeated Candle candles = 4;
+    map<int64, Candle> mapCandles = 5;  // 快速检索用，不做传递，本地运算缓存用
 }
 
 // FundSize - fund size
