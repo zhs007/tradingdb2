@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -22,9 +23,11 @@ func makeSimTradingNodesDBKey(strategy string, market string, symbol string, tsS
 
 // SimTradingDB - database
 type SimTradingDB struct {
-	AnkaDB ankadb.AnkaDB
-	// lastCache  *SimTradingDBCache
-	// mutexCache sync.Mutex
+	AnkaDB      ankadb.AnkaDB
+	mutexDB     sync.Mutex
+	lastClearTs int64
+	ticker      *time.Ticker
+	chanDone    chan int
 }
 
 // NewSimTradingDB - new SimTradingDB
@@ -45,8 +48,12 @@ func NewSimTradingDB(dbpath string, httpAddr string, engine string) (*SimTrading
 	}
 
 	db := &SimTradingDB{
-		AnkaDB: ankaDB,
+		AnkaDB:   ankaDB,
+		ticker:   time.NewTicker(time.Hour),
+		chanDone: make(chan int),
 	}
+
+	go db.onTimer()
 
 	return db, err
 }
@@ -328,7 +335,9 @@ func (db *SimTradingDB) getSimTradingNodes(ctx context.Context, params *tradingp
 
 	key := makeSimTradingNodesDBKey(params.Strategies[0].Name, params.Assets[0].Market, params.Assets[0].Code, params.StartTs, params.EndTs)
 
+	db.mutexDB.Lock()
 	buf, err := db.AnkaDB.Get(ctx, simtradingDBName, key)
+	db.mutexDB.Unlock()
 	if err != nil {
 		if err == ankadb.ErrNotFoundKey {
 			return nil, nil
@@ -359,7 +368,9 @@ func (db *SimTradingDB) updSimTradingNodes(ctx context.Context, params *tradingp
 		return err
 	}
 
+	db.mutexDB.Lock()
 	err = db.AnkaDB.Set(ctx, simtradingDBName, key, buf)
+	db.mutexDB.Unlock()
 	if err != nil {
 		return err
 	}
@@ -376,7 +387,9 @@ func (db *SimTradingDB) updSimTradingNodesEx(ctx context.Context, name string, m
 		return err
 	}
 
+	db.mutexDB.Lock()
 	err = db.AnkaDB.Set(ctx, simtradingDBName, key, buf)
+	db.mutexDB.Unlock()
 	if err != nil {
 		return err
 	}
@@ -402,7 +415,9 @@ func (db *SimTradingDB) isSameSimTradingParams(v0 *tradingpb.SimTradingParams, v
 func (db *SimTradingDB) getPNLData(ctx context.Context, key string) (
 	*tradingpb.PNLData, error) {
 
+	db.mutexDB.Lock()
 	buf, err := db.AnkaDB.Get(ctx, simtradingDBName, key)
+	db.mutexDB.Unlock()
 	if err != nil {
 		if err == ankadb.ErrNotFoundKey {
 			return nil, nil
@@ -445,10 +460,97 @@ func (db *SimTradingDB) updPNLData(ctx context.Context, key string, pnldata *tra
 		return err
 	}
 
+	db.mutexDB.Lock()
 	err = db.AnkaDB.Set(ctx, simtradingDBName, key, buf)
+	db.mutexDB.Unlock()
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// ClearCache - clear cache
+func (db *SimTradingDB) ClearCache(ctx context.Context) error {
+
+	if time.Now().Unix()-db.lastClearTs > SimTradingCacheTimerTs {
+		curts := time.Now().Unix()
+
+		db.mutexDB.Lock()
+		defer db.mutexDB.Unlock()
+
+		err := db.AnkaDB.ForEachWithPrefix(ctx, simtradingDBName, simtradingNodesKeyPrefix, func(key string, value []byte) error {
+			cache := &tradingpb.SimTradingCache{}
+
+			err := proto.Unmarshal(value, cache)
+			if err != nil {
+				tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach:Unmarshal",
+					zap.Error(err),
+					zap.String("key", key))
+
+				return err
+			}
+
+			ischg := false
+			newcache := &tradingpb.SimTradingCache{}
+			for _, v := range cache.Nodes {
+				if curts-v.LastTs > SimTradingCacheTimeOut {
+					ischg = true
+
+					err = db.AnkaDB.Delete(ctx, simtradingDBName, v.Key)
+
+					tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach:Delete",
+						zap.Error(err),
+						zap.String("key", v.Key))
+				} else {
+					newcache.Nodes = append(newcache.Nodes, v)
+				}
+			}
+
+			if ischg {
+				buf, err := proto.Marshal(newcache)
+				if err != nil {
+					tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach:Marshal",
+						zap.Error(err),
+						zap.String("key", key))
+
+					return err
+				}
+
+				err = db.AnkaDB.Set(ctx, simtradingDBName, key, buf)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach",
+				zap.Error(err))
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+// onTimer - on timer
+func (db *SimTradingDB) onTimer() {
+	for {
+		select {
+		case <-db.chanDone:
+			return
+		case <-db.ticker.C:
+			db.ClearCache(context.Background())
+		}
+	}
+}
+
+// Stop - stop
+func (db *SimTradingDB) Stop() {
+	db.ticker.Stop()
+	db.chanDone <- 0
 }

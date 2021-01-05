@@ -93,6 +93,7 @@ func (serv *Serv) Stop() {
 	serv.lis.Close()
 
 	serv.MgrNodes.Stop()
+	serv.DBSimTrading.Stop()
 
 	return
 }
