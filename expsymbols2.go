@@ -49,7 +49,17 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 
 	symbols, err := db2.GetMarketSymbols(ctx, market)
 	if err != nil {
+		tradingdb2utils.Warn("ExpSymbols2:GetMarketSymbols",
+			zap.Error(err))
+
 		return err
+	}
+
+	if len(symbols) <= 0 {
+		tradingdb2utils.Warn("ExpSymbols2:GetMarketSymbols",
+			zap.Error(ErrNoSymbols))
+
+		return ErrNoSymbols
 	}
 
 	curSymbol, err := getSymbol2(ctx, db2, market, symbols[0])
@@ -67,7 +77,7 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 			if v != curSymbol.Symbol {
 				curSymbol, err = getSymbol2(ctx, db2, market, v)
 				if err != nil {
-					tradingdb2utils.Warn("ExpSymbols:getSymbol Size",
+					tradingdb2utils.Warn("ExpSymbols2:getSymbol Size",
 						zap.Error(err))
 
 					return nil, nil
@@ -102,7 +112,7 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 
 					b, err := json.Marshal(curSymbol.Fund.Size)
 					if err != nil {
-						tradingdb2utils.Warn("ExpSymbols:Marshal Size",
+						tradingdb2utils.Warn("ExpSymbols2:Marshal Size",
 							zap.Error(err))
 
 						return nil, nil
@@ -127,7 +137,7 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 
 					b, err := json.Marshal(mgrs)
 					if err != nil {
-						tradingdb2utils.Warn("ExpSymbols:Marshal Managers",
+						tradingdb2utils.Warn("ExpSymbols2:Marshal Managers",
 							zap.Error(err))
 
 						return nil, nil
@@ -141,7 +151,7 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 				if curSymbol.Fund != nil {
 					fv, err := db2.GetCandles(ctx, curSymbol.Market, curSymbol.Symbol, 0, 0)
 					if err != nil {
-						tradingdb2utils.Warn("ExpSymbols:Marshal GetCandles",
+						tradingdb2utils.Warn("ExpSymbols2:Marshal GetCandles",
 							zap.Error(err))
 
 						return nil, nil

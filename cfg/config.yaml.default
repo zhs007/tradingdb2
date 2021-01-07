@@ -14,6 +14,7 @@ logpath: ./logs
 db2markets:
   - jrj
   - bitmex
+  - jqdata
 # tokens - tokens
 tokens:
   - wzDkh9h2fhfUVuS9jZ8uVbhV3vC5AWX3

@@ -21,4 +21,7 @@ var (
 
 	// ErrInvalidToken - invalid token
 	ErrInvalidToken = errors.New("invalid token")
+
+	// ErrNoSymbols - no symbols
+	ErrNoSymbols = errors.New("no symbols")
 )
