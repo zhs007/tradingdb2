@@ -18,6 +18,7 @@ import (
 var fundsMember2 = []string{
 	"code",
 	"name",
+	"fullname",
 	"tags",
 	"createtime",
 	"size",
@@ -80,7 +81,9 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 					return curSymbol.Fund.Name, nil
 				}
 
-				return "", nil
+				return curSymbol.Name, nil
+			} else if member == "fullname" {
+				return curSymbol.Fullname, nil
 			} else if member == "tags" {
 				if curSymbol.Fund != nil {
 					return strings.Join(curSymbol.Fund.Tags, "; "), nil
