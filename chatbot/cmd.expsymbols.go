@@ -94,7 +94,7 @@ func (cmd *cmdExpSymbols) OnMessage(ctx context.Context, serv *chatbot.Serv, cha
 
 // RegistercmdExpSymbols - register expalldata in command
 func RegistercmdExpSymbols(serv *tradingdb2grpc.Serv) {
-	chatbot.RegisterCommand(nameExpAllDataCmd, &cmdExpSymbols{
+	chatbot.RegisterCommand(nameExpSymbolsCmd, &cmdExpSymbols{
 		serv: serv,
 	})
 }

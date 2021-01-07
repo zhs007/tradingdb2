@@ -60,7 +60,6 @@ func (cmd *cmdExpAllData) RunCommand(ctx context.Context, serv *chatbot.Serv, pa
 
 // ParseCommandLine - parse command line
 func (cmd *cmdExpAllData) ParseCommandLine(cmdline []string, chat *chatbotpb.ChatMsg) (interface{}, error) {
-
 	return nil, nil
 }
 
