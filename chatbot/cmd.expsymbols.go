@@ -79,6 +79,9 @@ func (cmd *cmdExpSymbols) ParseCommandLine(cmdline []string, chat *chatbotpb.Cha
 		return nil, err
 	}
 
+	tradingdb2utils.Info("cmdExpSymbols.ParseCommandLine",
+		zap.String("market", *strMarket))
+
 	return paramsCmdExpSymbols{
 		market: *strMarket,
 	}, nil
