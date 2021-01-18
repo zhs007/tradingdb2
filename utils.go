@@ -261,5 +261,13 @@ func IsSameStrategy(v0 *tradingpb.Strategy, v1 *tradingpb.Strategy) bool {
 		}
 	}
 
+	if !proto.Equal(v0.FeeBuy, v1.FeeBuy) {
+		return false
+	}
+
+	if !proto.Equal(v0.FeeSell, v1.FeeSell) {
+		return false
+	}
+
 	return true
 }
