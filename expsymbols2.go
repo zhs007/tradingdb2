@@ -58,6 +58,18 @@ func calcAvgVolume30(candles *tradingpb.Candles) float32 {
 	return float32(totalvolume) / float32(nums)
 }
 
+// getCandlesWithSymbolInfo - get candles
+func getCandlesWithSymbolInfo(ctx context.Context, db2 *DB2, si *tradingpb.SymbolInfo) (*tradingpb.Candles, error) {
+	if si.Market == "jqdata" {
+		str := strings.ReplaceAll(si.Symbol, ".", "_")
+		str += "|1d"
+
+		return db2.GetCandles(ctx, si.Market, str, 0, 0)
+	}
+
+	return db2.GetCandles(ctx, si.Market, si.Symbol, 0, 0)
+}
+
 // ExpSymbols2 - export symbols
 func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error {
 	f := excelize.NewFile()
@@ -163,9 +175,9 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 
 				return "", nil
 			} else if member == "values" {
-				fv, err := db2.GetCandles(ctx, curSymbol.Market, curSymbol.Symbol, 0, 0)
+				fv, err := getCandlesWithSymbolInfo(ctx, db2, curSymbol)
 				if err != nil {
-					tradingdb2utils.Warn("ExpSymbols2:Marshal GetCandles",
+					tradingdb2utils.Warn("ExpSymbols2:getCandlesWithSymbolInfo values",
 						zap.Error(err))
 
 					return nil, nil
@@ -180,9 +192,9 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 			} else if member == "type" {
 				return curSymbol.Type, nil
 			} else if member == "avgvolume30" {
-				fv, err := db2.GetCandles(ctx, curSymbol.Market, curSymbol.Symbol, 0, 0)
+				fv, err := getCandlesWithSymbolInfo(ctx, db2, curSymbol)
 				if err != nil {
-					tradingdb2utils.Warn("ExpSymbols2:Marshal GetCandles",
+					tradingdb2utils.Warn("ExpSymbols2:getCandlesWithSymbolInfo avgvolume30",
 						zap.Error(err))
 
 					return nil, nil
