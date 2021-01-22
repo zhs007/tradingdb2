@@ -2,6 +2,7 @@ package tradingdb2
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +26,8 @@ var fundsMember2 = []string{
 	"company",
 	"managers",
 	"values",
+	"type",
+	"avgvolume30",
 }
 
 func getSymbol2(ctx context.Context, db2 *DB2, market string, symbol string) (*tradingpb.SymbolInfo, error) {
@@ -41,6 +44,18 @@ func getSymbol2(ctx context.Context, db2 *DB2, market string, symbol string) (*t
 	}
 
 	return curSymbol, nil
+}
+
+func calcAvgVolume30(candles *tradingpb.Candles) float32 {
+	var totalvolume int64
+	nums := 0
+
+	for i := len(candles.Candles) - 1; i >= 0 && i > len(candles.Candles)-31; i-- {
+		totalvolume += candles.Candles[i].Volume
+		nums++
+	}
+
+	return float32(totalvolume) / float32(nums)
 }
 
 // ExpSymbols2 - export symbols
@@ -148,20 +163,33 @@ func ExpSymbols2(ctx context.Context, fn string, db2 *DB2, market string) error 
 
 				return "", nil
 			} else if member == "values" {
-				if curSymbol.Fund != nil {
-					fv, err := db2.GetCandles(ctx, curSymbol.Market, curSymbol.Symbol, 0, 0)
-					if err != nil {
-						tradingdb2utils.Warn("ExpSymbols2:Marshal GetCandles",
-							zap.Error(err))
+				fv, err := db2.GetCandles(ctx, curSymbol.Market, curSymbol.Symbol, 0, 0)
+				if err != nil {
+					tradingdb2utils.Warn("ExpSymbols2:Marshal GetCandles",
+						zap.Error(err))
 
-						return nil, nil
-					}
+					return nil, nil
+				}
 
-					if fv != nil {
-						return strconv.Itoa(len(fv.Candles)), nil
-					}
+				if fv != nil {
+					return strconv.Itoa(len(fv.Candles)), nil
+				}
 
-					return "0", nil
+				return "0", nil
+
+			} else if member == "type" {
+				return curSymbol.Type, nil
+			} else if member == "avgvolume30" {
+				fv, err := db2.GetCandles(ctx, curSymbol.Market, curSymbol.Symbol, 0, 0)
+				if err != nil {
+					tradingdb2utils.Warn("ExpSymbols2:Marshal GetCandles",
+						zap.Error(err))
+
+					return nil, nil
+				}
+
+				if fv != nil {
+					return fmt.Sprintf("%f", calcAvgVolume30(fv)), nil
 				}
 
 				return "0", nil
