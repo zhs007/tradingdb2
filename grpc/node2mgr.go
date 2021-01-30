@@ -287,13 +287,15 @@ func (mgr *Node2Mgr) nextTask(ctx context.Context) error {
 // runTask -
 func (mgr *Node2Mgr) runTask(ctx context.Context, client *Node2Client, task *Node2Task) {
 	tradingdb2utils.Debug("Node2Mgr.runTask",
-		tradingdb2utils.JSON("params", task.Params))
+		tradingdb2utils.JSON("params", task.Params),
+		zap.String("servAddr", client.servAddr))
 
 	if client != nil {
 		reply, err := client.calcPNL(ctx, task.Params, nil)
 		if err != nil {
 			tradingdb2utils.Error("Node2Mgr.runTask:calcPNL",
-				zap.Error(err))
+				zap.Error(err),
+				zap.String("servAddr", client.servAddr))
 
 			mgr.chanTaskResult <- &Node2TaskResult{
 				Task: task,
@@ -306,13 +308,15 @@ func (mgr *Node2Mgr) runTask(ctx context.Context, client *Node2Client, task *Nod
 			}
 		}
 
-		tradingdb2utils.Debug("Node2Mgr.runTask:end")
+		tradingdb2utils.Debug("Node2Mgr.runTask:end",
+			zap.String("servAddr", client.servAddr))
 
 		return
 	}
 
 	tradingdb2utils.Error("Node2Mgr.runTask",
-		zap.Error(ErrNoNode))
+		zap.Error(ErrNoNode),
+		zap.String("servAddr", client.servAddr))
 }
 
 // hasRunningTasks -
