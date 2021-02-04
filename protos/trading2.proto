@@ -108,6 +108,7 @@ message BuyParams {
     string typeBuyAsset = 11;                       // 配合assetCode用的买入方式；为了更好的模拟交易，这里用来做交易价格，最差的情况应该用high买到
     int32 moneyParts = 12;                          // 将钱分成几部分
     int32 nextTimes = 13;                           // 信号触发后，下几次再买入，1表示下一次买入
+    int32 depositMoney = 14;                        // 如果购买时，没有钱了，会先存入金额，再买入
 }
 
 // SellParams - sell parameters
@@ -248,6 +249,7 @@ message SimTradingParams {
     Wallet wallet = 6;
     string title = 7;                                   // title，会重新设置到PNLData上
     int32 mainAssetIndex = 8;                           // 主Asset索引，默认为0
+    repeated string indicators = 9;                     // 请求的indicator，基于主asset
 }
 
 // TradingNodeInfo - trading node2 infomation
