@@ -200,7 +200,7 @@ func (serv *Serv) GetCandles(req *tradingpb.RequestGetCandles, stream tradingpb.
 	// 	tags = append(tags, req.Tag)
 	// }
 
-	candles, err := serv.DB2.GetCandles(stream.Context(), req.Market, req.Symbol, req.TsStart, req.TsEnd)
+	candles, err := serv.DB2.GetCandles(stream.Context(), req.Market, req.Symbol, req.TsStart, req.TsEnd, req.Offset)
 	if err != nil {
 		tradingdb2utils.Error("Serv.GetCandles:DB.GetCandles",
 			tradingdb2utils.JSON("params", req),

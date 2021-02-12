@@ -121,7 +121,7 @@ func (db2 *DB2) UpdCandles(ctx context.Context, candles *tradingpb.Candles) erro
 }
 
 // GetCandles - get candles
-func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, tsStart int64, tsEnd int64) (*tradingpb.Candles, error) {
+func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, tsStart int64, tsEnd int64, offset int32) (*tradingpb.Candles, error) {
 	if market == "" || tradingdb2utils.IndexOfStringSlice(db2.cfg.DB2Markets, market, 0) < 0 {
 		return nil, ErrInvalidMarket
 	}
@@ -148,11 +148,36 @@ func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, ts
 		}
 
 		if tsStart > 0 || tsEnd > 0 {
-			for _, v := range cc.Candles {
-				if v.Ts >= tsStart && v.Ts <= tsEnd {
-					candles.Candles = append(candles.Candles, v)
+			if offset > 0 {
+				lst := []*tradingpb.Candle{}
+
+				for _, v := range cc.Candles {
+					if v.Ts >= tsStart && v.Ts <= tsEnd {
+						candles.Candles = append(candles.Candles, v)
+					} else if v.Ts < tsStart {
+						lst = append(lst, v)
+					}
+				}
+
+				if len(lst) <= int(offset) {
+					lst = append(lst, candles.Candles...)
+
+					candles.Candles = lst
+				} else {
+					lst1 := lst[len(lst)-int(offset):]
+
+					lst1 = append(lst1, candles.Candles...)
+
+					candles.Candles = lst1
+				}
+			} else {
+				for _, v := range cc.Candles {
+					if v.Ts >= tsStart && v.Ts <= tsEnd {
+						candles.Candles = append(candles.Candles, v)
+					}
 				}
 			}
+
 		} else {
 			candles.Candles = append(candles.Candles, cc.Candles...)
 		}
