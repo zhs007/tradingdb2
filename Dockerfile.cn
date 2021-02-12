@@ -2,7 +2,7 @@ FROM golang:1 as builder
 
 LABEL writer="zerrozhao@gmail.com"
 
-# ENV GOPROXY https://goproxy.io
+ENV GOPROXY https://goproxy.io
 
 WORKDIR /src/tradingdb2
 
