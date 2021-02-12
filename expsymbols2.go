@@ -64,10 +64,10 @@ func getCandlesWithSymbolInfo(ctx context.Context, db2 *DB2, si *tradingpb.Symbo
 		str := strings.ReplaceAll(si.Symbol, ".", "_")
 		str += "|1d"
 
-		return db2.GetCandles(ctx, si.Market, str, 0, 0)
+		return db2.GetCandles(ctx, si.Market, str, 0, 0, 0)
 	}
 
-	return db2.GetCandles(ctx, si.Market, si.Symbol, 0, 0)
+	return db2.GetCandles(ctx, si.Market, si.Symbol, 0, 0, 0)
 }
 
 // ExpSymbols2 - export symbols
