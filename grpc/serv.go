@@ -569,7 +569,7 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 								isSendNow = false
 
 								lstIgnore = append(lstIgnore, reply)
-								if len(lstIgnore) > minNums*2 {
+								if len(lstIgnore) > minNums*10 {
 									lstIgnore = serv.procIgnoreReply(lstIgnore, req.IgnoreTotalReturn, minNums)
 								}
 							}
