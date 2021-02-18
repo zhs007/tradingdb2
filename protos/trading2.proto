@@ -264,6 +264,7 @@ message SimTradingCacheNode {
     SimTradingParams params = 1;
     string key = 2;
     int64 lastTs = 3;
+    string hash = 4;
 }
 
 // SimTradingCache - 

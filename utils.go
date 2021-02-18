@@ -7,6 +7,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
+	"go.uber.org/zap"
 )
 
 // SortCandles - sort Candles
@@ -270,4 +271,69 @@ func IsSameStrategy(v0 *tradingpb.Strategy, v1 *tradingpb.Strategy) bool {
 	}
 
 	return true
+}
+
+func sortCtrlConditions(ctrlConditions []*tradingpb.CtrlCondition) error {
+	return nil
+}
+
+func sortStrategys(strategies []*tradingpb.Strategy) error {
+	for _, v := range strategies {
+		err := sortCtrlConditions(v.Buy)
+		if err != nil {
+			tradingdb2utils.Warn("sortStrategys:sortCtrlConditions Buy",
+				zap.Error(err))
+
+			return err
+		}
+
+		err = sortCtrlConditions(v.Sell)
+		if err != nil {
+			tradingdb2utils.Warn("sortStrategys:sortCtrlConditions Sell",
+				zap.Error(err))
+
+			return err
+		}
+
+		err = sortCtrlConditions(v.Stoploss)
+		if err != nil {
+			tradingdb2utils.Warn("sortStrategys:sortCtrlConditions Stoploss",
+				zap.Error(err))
+
+			return err
+		}
+
+		err = sortCtrlConditions(v.Takeprofit)
+		if err != nil {
+			tradingdb2utils.Warn("sortStrategys:sortCtrlConditions Takeprofit",
+				zap.Error(err))
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, error) {
+	nmsg := proto.Clone(params)
+	np, isok := nmsg.(*tradingpb.SimTradingParams)
+	if !isok {
+		tradingdb2utils.Warn("rebuildSimTradingParams:Clone",
+			zap.Error(ErrInvalidSimTradingParams))
+
+		return nil, ErrInvalidSimTradingParams
+	}
+
+	np.Title = ""
+
+	err := sortStrategys(np.Strategies)
+	if err != nil {
+		tradingdb2utils.Warn("rebuildSimTradingParams:sortStrategys",
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	return np, nil
 }
