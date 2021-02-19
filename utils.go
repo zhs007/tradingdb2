@@ -1,6 +1,8 @@
 package tradingdb2
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"math"
 	"sort"
 
@@ -169,115 +171,364 @@ func FixFundManagers(fms []*tradingpb.FundManager) {
 	}
 }
 
-// IsSameStrategy - is same Strategy
-func IsSameStrategy(v0 *tradingpb.Strategy, v1 *tradingpb.Strategy) bool {
-	if v0.Name != v1.Name {
-		return false
+// // IsSameStrategy - is same Strategy
+// func IsSameStrategy(v0 *tradingpb.Strategy, v1 *tradingpb.Strategy) bool {
+// 	if v0.Name != v1.Name {
+// 		return false
+// 	}
+
+// 	if !proto.Equal(v0.Asset, v1.Asset) {
+// 		return false
+// 	}
+
+// 	if len(v0.Buy) != len(v1.Buy) {
+// 		return false
+// 	}
+
+// 	for bi, bv0 := range v0.Buy {
+// 		bv1 := v1.Buy[bi]
+
+// 		if !proto.Equal(bv0, bv1) {
+// 			return false
+// 		}
+// 	}
+
+// 	if len(v0.Sell) != len(v1.Sell) {
+// 		return false
+// 	}
+
+// 	for si, sv0 := range v0.Sell {
+// 		sv1 := v1.Sell[si]
+
+// 		if !proto.Equal(sv0, sv1) {
+// 			return false
+// 		}
+// 	}
+
+// 	if len(v0.Stoploss) != len(v1.Stoploss) {
+// 		return false
+// 	}
+
+// 	for si, sv0 := range v0.Stoploss {
+// 		sv1 := v1.Stoploss[si]
+
+// 		if !proto.Equal(sv0, sv1) {
+// 			return false
+// 		}
+// 	}
+
+// 	if len(v0.Takeprofit) != len(v1.Takeprofit) {
+// 		return false
+// 	}
+
+// 	for ti, tv0 := range v0.Takeprofit {
+// 		tv1 := v1.Takeprofit[ti]
+
+// 		if !proto.Equal(tv0, tv1) {
+// 			return false
+// 		}
+// 	}
+
+// 	if !proto.Equal(v0.ParamsBuy, v1.ParamsBuy) {
+// 		return false
+// 	}
+
+// 	if !proto.Equal(v0.ParamsSell, v1.ParamsSell) {
+// 		return false
+// 	}
+
+// 	if !proto.Equal(v0.ParamsStopLoss, v1.ParamsStopLoss) {
+// 		return false
+// 	}
+
+// 	if !proto.Equal(v0.ParamsTakeProfit, v1.ParamsTakeProfit) {
+// 		return false
+// 	}
+
+// 	if !proto.Equal(v0.ParamsInit, v1.ParamsInit) {
+// 		return false
+// 	}
+
+// 	if !proto.Equal(v0.ParamsAIP, v1.ParamsAIP) {
+// 		return false
+// 	}
+
+// 	if len(v0.Indicators) != len(v1.Indicators) {
+// 		return false
+// 	}
+
+// 	// 这里顺序不一致也没问题
+// 	for _, iv0 := range v0.Indicators {
+// 		if tradingdb2utils.IndexOfStringSlice(v1.Indicators, iv0, 0) < 0 {
+// 			return false
+// 		}
+// 	}
+
+// 	if !proto.Equal(v0.FeeBuy, v1.FeeBuy) {
+// 		return false
+// 	}
+
+// 	if !proto.Equal(v0.FeeSell, v1.FeeSell) {
+// 		return false
+// 	}
+
+// 	return true
+// }
+
+// cmpCtrlCondition - group name vals operators strvals combCondition
+func cmpCtrlCondition(cc0 *tradingpb.CtrlCondition, cc1 *tradingpb.CtrlCondition) int {
+	if cc0.Group != cc1.Group {
+		if cc0.Group < cc1.Group {
+			return -1
+		}
+
+		return 1
 	}
 
-	if !proto.Equal(v0.Asset, v1.Asset) {
-		return false
+	if cc0.Name != cc1.Name {
+		if cc0.Name < cc1.Name {
+			return -1
+		}
+
+		return 1
 	}
 
-	if len(v0.Buy) != len(v1.Buy) {
-		return false
+	if len(cc0.Vals) != len(cc1.Vals) {
+		if len(cc0.Vals) < len(cc1.Vals) {
+			return -1
+		}
+
+		return 1
 	}
 
-	for bi, bv0 := range v0.Buy {
-		bv1 := v1.Buy[bi]
+	if len(cc0.Vals) > 0 {
+		for ti := 0; ti < len(cc0.Vals); ti++ {
+			if cc0.Vals[ti] != cc1.Vals[ti] {
+				if cc0.Vals[ti] < cc1.Vals[ti] {
+					return -1
+				}
 
-		if !proto.Equal(bv0, bv1) {
-			return false
+				return 1
+			}
 		}
 	}
 
-	if len(v0.Sell) != len(v1.Sell) {
-		return false
+	if len(cc0.Operators) != len(cc1.Operators) {
+		if len(cc0.Operators) < len(cc1.Operators) {
+			return -1
+		}
+
+		return 1
 	}
 
-	for si, sv0 := range v0.Sell {
-		sv1 := v1.Sell[si]
+	if len(cc0.Operators) > 0 {
+		for ti := 0; ti < len(cc0.Operators); ti++ {
+			if cc0.Operators[ti] != cc1.Operators[ti] {
+				if cc0.Operators[ti] < cc1.Operators[ti] {
+					return -1
+				}
 
-		if !proto.Equal(sv0, sv1) {
-			return false
+				return 1
+			}
 		}
 	}
 
-	if len(v0.Stoploss) != len(v1.Stoploss) {
-		return false
+	if len(cc0.StrVals) != len(cc1.StrVals) {
+		if len(cc0.StrVals) < len(cc1.StrVals) {
+			return -1
+		}
+
+		return 1
 	}
 
-	for si, sv0 := range v0.Stoploss {
-		sv1 := v1.Stoploss[si]
+	if len(cc0.StrVals) > 0 {
+		for ti := 0; ti < len(cc0.StrVals); ti++ {
+			if cc0.StrVals[ti] != cc1.StrVals[ti] {
+				if cc0.StrVals[ti] < cc1.StrVals[ti] {
+					return -1
+				}
 
-		if !proto.Equal(sv0, sv1) {
-			return false
+				return 1
+			}
 		}
 	}
 
-	if len(v0.Takeprofit) != len(v1.Takeprofit) {
-		return false
+	if cc0.CombCondition < cc1.CombCondition {
+		return -1
 	}
 
-	for ti, tv0 := range v0.Takeprofit {
-		tv1 := v1.Takeprofit[ti]
-
-		if !proto.Equal(tv0, tv1) {
-			return false
-		}
+	if cc0.CombCondition > cc1.CombCondition {
+		return 1
 	}
 
-	if !proto.Equal(v0.ParamsBuy, v1.ParamsBuy) {
-		return false
-	}
-
-	if !proto.Equal(v0.ParamsSell, v1.ParamsSell) {
-		return false
-	}
-
-	if !proto.Equal(v0.ParamsStopLoss, v1.ParamsStopLoss) {
-		return false
-	}
-
-	if !proto.Equal(v0.ParamsTakeProfit, v1.ParamsTakeProfit) {
-		return false
-	}
-
-	if !proto.Equal(v0.ParamsInit, v1.ParamsInit) {
-		return false
-	}
-
-	if !proto.Equal(v0.ParamsAIP, v1.ParamsAIP) {
-		return false
-	}
-
-	if len(v0.Indicators) != len(v1.Indicators) {
-		return false
-	}
-
-	// 这里顺序不一致也没问题
-	for _, iv0 := range v0.Indicators {
-		if tradingdb2utils.IndexOfStringSlice(v1.Indicators, iv0, 0) < 0 {
-			return false
-		}
-	}
-
-	if !proto.Equal(v0.FeeBuy, v1.FeeBuy) {
-		return false
-	}
-
-	if !proto.Equal(v0.FeeSell, v1.FeeSell) {
-		return false
-	}
-
-	return true
+	return 0
 }
 
+// sortCtrlConditions - group name vals operators strvals combCondition
 func sortCtrlConditions(ctrlConditions []*tradingpb.CtrlCondition) error {
+	sort.Slice(ctrlConditions, func(i, j int) bool {
+		return cmpCtrlCondition(ctrlConditions[i], ctrlConditions[j]) <= 0
+	})
+
 	return nil
 }
 
-func sortStrategys(strategies []*tradingpb.Strategy) error {
+// cmpAsset -
+func cmpAsset(a0 *tradingpb.Asset, a1 *tradingpb.Asset) int {
+	if a0.Market != a1.Market {
+		if a0.Market < a1.Market {
+			return -1
+		}
+
+		return 1
+	}
+
+	if a0.Code != a1.Code {
+		if a0.Code < a1.Code {
+			return -1
+		}
+
+		return 1
+	}
+
+	if len(a0.Tags) != len(a1.Tags) {
+		if len(a0.Tags) < len(a1.Tags) {
+			return -1
+		}
+
+		return 1
+	}
+
+	if len(a0.Tags) > 0 {
+		for ti := 0; ti < len(a0.Tags); ti++ {
+			if a0.Tags[ti] != a1.Tags[ti] {
+				if a0.Tags[ti] < a1.Tags[ti] {
+					return -1
+				}
+
+				return 1
+			}
+		}
+	}
+
+	return 0
+}
+
+// cmpStrategy - name asset buy sell stoploss takeprofit hash
+func cmpStrategy(s0 *tradingpb.Strategy, s1 *tradingpb.Strategy) (int, error) {
+	if s0.Name != s1.Name {
+		if s0.Name < s1.Name {
+			return -1, nil
+		}
+
+		return 1, nil
+	}
+
+	ca := cmpAsset(s0.Asset, s1.Asset)
+	if ca != 0 {
+		return ca, nil
+	}
+
+	if len(s0.Buy) != len(s1.Buy) {
+		if len(s0.Buy) < len(s1.Buy) {
+			return -1, nil
+		}
+
+		return 1, nil
+	}
+
+	if len(s0.Buy) > 0 {
+		for ti := 0; ti < len(s0.Buy); ti++ {
+			cb := cmpCtrlCondition(s0.Buy[ti], s1.Buy[ti])
+			if cb != 0 {
+				return cb, nil
+			}
+		}
+	}
+
+	if len(s0.Sell) != len(s1.Sell) {
+		if len(s0.Sell) < len(s1.Sell) {
+			return -1, nil
+		}
+
+		return 1, nil
+	}
+
+	if len(s0.Sell) > 0 {
+		for ti := 0; ti < len(s0.Sell); ti++ {
+			cs := cmpCtrlCondition(s0.Sell[ti], s1.Sell[ti])
+			if cs != 0 {
+				return cs, nil
+			}
+		}
+	}
+
+	if len(s0.Stoploss) != len(s1.Stoploss) {
+		if len(s0.Stoploss) < len(s1.Stoploss) {
+			return -1, nil
+		}
+
+		return 1, nil
+	}
+
+	if len(s0.Stoploss) > 0 {
+		for ti := 0; ti < len(s0.Stoploss); ti++ {
+			cs := cmpCtrlCondition(s0.Stoploss[ti], s1.Stoploss[ti])
+			if cs != 0 {
+				return cs, nil
+			}
+		}
+	}
+
+	if len(s0.Takeprofit) != len(s1.Takeprofit) {
+		if len(s0.Takeprofit) < len(s1.Takeprofit) {
+			return -1, nil
+		}
+
+		return 1, nil
+	}
+
+	if len(s0.Takeprofit) > 0 {
+		for ti := 0; ti < len(s0.Takeprofit); ti++ {
+			ct := cmpCtrlCondition(s0.Takeprofit[ti], s1.Takeprofit[ti])
+			if ct != 0 {
+				return ct, nil
+			}
+		}
+	}
+
+	buf0, err := proto.Marshal(s0)
+	if err != nil {
+		return -1, err
+	}
+
+	buf1, err := proto.Marshal(s1)
+	if err != nil {
+		return -1, err
+	}
+
+	if len(buf0) != len(buf1) {
+		if len(buf0) < len(buf1) {
+			return -1, nil
+		}
+
+		return 1, nil
+	}
+
+	for ti := 0; ti < len(buf0); ti++ {
+		if buf0[ti] != buf1[ti] {
+			if buf0[ti] < buf1[ti] {
+				return -1, nil
+			}
+
+			return 0, nil
+		}
+	}
+
+	return 0, nil
+}
+
+func sortStrategies(strategies []*tradingpb.Strategy) error {
 	for _, v := range strategies {
 		err := sortCtrlConditions(v.Buy)
 		if err != nil {
@@ -312,28 +563,50 @@ func sortStrategys(strategies []*tradingpb.Strategy) error {
 		}
 	}
 
+	sort.Slice(strategies, func(i, j int) bool {
+		cs, err := cmpStrategy(strategies[i], strategies[j])
+		if err != nil {
+			tradingdb2utils.Warn("sortStrategys:cmpStrategy",
+				zap.Error(err))
+		}
+
+		return cs <= 0
+	})
+
 	return nil
 }
 
-func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, error) {
+func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, string, error) {
 	nmsg := proto.Clone(params)
 	np, isok := nmsg.(*tradingpb.SimTradingParams)
 	if !isok {
 		tradingdb2utils.Warn("rebuildSimTradingParams:Clone",
 			zap.Error(ErrInvalidSimTradingParams))
 
-		return nil, ErrInvalidSimTradingParams
+		return nil, "", ErrInvalidSimTradingParams
 	}
 
 	np.Title = ""
 
-	err := sortStrategys(np.Strategies)
+	err := sortStrategies(np.Strategies)
 	if err != nil {
 		tradingdb2utils.Warn("rebuildSimTradingParams:sortStrategys",
 			zap.Error(err))
 
-		return nil, err
+		return nil, "", err
 	}
 
-	return np, nil
+	buf, err := proto.Marshal(np)
+	if err != nil {
+		tradingdb2utils.Warn("rebuildSimTradingParams:Marshal",
+			zap.Error(err))
+
+		return nil, "", err
+	}
+
+	h := sha1.New()
+	h.Write(buf)
+	bs := h.Sum(nil)
+
+	return np, fmt.Sprintf("%x", bs), nil
 }
