@@ -264,7 +264,8 @@ message SimTradingCacheNode {
     SimTradingParams params = 1;
     string key = 2;
     int64 lastTs = 3;
-    string hash = 4;
+    string hash = 4 [deprecated = true];    // 为了解决内存占用问题，hash弃用，直接保存 params 的 bytes，直接比较即可
+    bytes buf = 5;      
 }
 
 // SimTradingCache - 

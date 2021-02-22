@@ -576,14 +576,14 @@ func sortStrategies(strategies []*tradingpb.Strategy) error {
 	return nil
 }
 
-func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, string, error) {
+func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, []byte, string, error) {
 	nmsg := proto.Clone(params)
 	np, isok := nmsg.(*tradingpb.SimTradingParams)
 	if !isok {
 		tradingdb2utils.Warn("rebuildSimTradingParams:Clone",
 			zap.Error(ErrInvalidSimTradingParams))
 
-		return nil, "", ErrInvalidSimTradingParams
+		return nil, nil, "", ErrInvalidSimTradingParams
 	}
 
 	np.Title = ""
@@ -593,7 +593,7 @@ func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.Sim
 		tradingdb2utils.Warn("rebuildSimTradingParams:sortStrategys",
 			zap.Error(err))
 
-		return nil, "", err
+		return nil, nil, "", err
 	}
 
 	buf, err := proto.Marshal(np)
@@ -601,12 +601,12 @@ func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.Sim
 		tradingdb2utils.Warn("rebuildSimTradingParams:Marshal",
 			zap.Error(err))
 
-		return nil, "", err
+		return nil, nil, "", err
 	}
 
 	h := sha1.New()
 	h.Write(buf)
 	bs := h.Sum(nil)
 
-	return np, fmt.Sprintf("%x", bs), nil
+	return np, buf, fmt.Sprintf("%x", bs), nil
 }
