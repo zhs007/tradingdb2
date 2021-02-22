@@ -830,6 +830,66 @@ func (db *SimTradingDB) ClearCache(ctx context.Context) error {
 
 			return err
 		}
+
+		err = db.AnkaDB.ForEachWithPrefix(ctx, simtradingDBName, simtradingNodesKey2Prefix, func(key string, value []byte) error {
+			cache := &tradingpb.SimTradingCache{}
+
+			err := proto.Unmarshal(value, cache)
+			if err != nil {
+				tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach:Unmarshal",
+					zap.Error(err),
+					zap.String("key", key))
+
+				return err
+			}
+
+			delnums := 0
+			newcache := &tradingpb.SimTradingCache{}
+			for _, v := range cache.Nodes {
+				if curts-v.LastTs > SimTradingCacheTimeOut {
+					delnums++
+
+					err = db.AnkaDB.Delete(ctx, simtradingDBName, v.Key)
+
+					tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach:Delete",
+						zap.Error(err),
+						zap.String("key", v.Key))
+				} else {
+					newcache.Nodes = append(newcache.Nodes, v)
+				}
+			}
+
+			if delnums > 0 {
+				buf, err := proto.Marshal(newcache)
+				if err != nil {
+					tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach:Marshal",
+						zap.Error(err),
+						zap.String("key", key))
+
+					return err
+				}
+
+				err = db.AnkaDB.Set(ctx, simtradingDBName, key, buf)
+				if err != nil {
+					return err
+				}
+
+				tradingdb2utils.Info("SimTradingDB.ClearCache",
+					zap.String("key", key),
+					zap.Int("nums", delnums),
+					zap.Int("firstnums", len(cache.Nodes)),
+					zap.Int("lastnums", len(newcache.Nodes)))
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			tradingdb2utils.Warn("SimTradingDB.ClearCache:FuncAnkaDBForEach",
+				zap.Error(err))
+
+			return err
+		}
 	}
 
 	return nil
