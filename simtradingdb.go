@@ -1,6 +1,7 @@
 package tradingdb2
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"fmt"
@@ -72,7 +73,7 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 		cache = &tradingpb.SimTradingCache{}
 	}
 
-	_, chash, err := rebuildSimTradingParams(params)
+	_, cbuf, err := rebuildSimTradingParams(params)
 	if err != nil {
 		tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:rebuildSimTradingParams params",
 			zap.Error(err))
@@ -81,8 +82,8 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 	}
 
 	for _, v := range cache.Nodes {
-		if v.Hash == "" {
-			_, hash, err := rebuildSimTradingParams(v.Params)
+		if v.Buf == nil {
+			_, tbuf, err := rebuildSimTradingParams(v.Params)
 			if err != nil {
 				tradingdb2utils.Warn("SimTradingDB.UpdSimTrading:rebuildSimTradingParams v.Params",
 					zap.Error(err))
@@ -91,11 +92,11 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 			}
 
 			// v.Params = cv
-			v.Hash = hash
+			v.Buf = tbuf
 		}
 
-		if chash == v.Hash {
-			v.Hash = ""
+		if bytes.Compare(cbuf, v.Buf) == 0 {
+			v.Buf = nil
 
 			v.LastTs = time.Now().Unix()
 			err = db.updSimTradingNodes(ctx, params, cache)
@@ -117,7 +118,7 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 			return nil
 		}
 
-		v.Hash = ""
+		v.Buf = nil
 
 		// if db.isSameSimTradingParams(params, v.Params) {
 		// 	v.LastTs = time.Now().Unix()
@@ -205,7 +206,7 @@ func (db *SimTradingDB) UpdSimTradingEx(ctx context.Context, params *tradingpb.S
 		cache = &tradingpb.SimTradingCache{}
 	}
 
-	_, chash, err := rebuildSimTradingParams(params)
+	_, cbuf, err := rebuildSimTradingParams(params)
 	if err != nil {
 		tradingdb2utils.Warn("SimTradingDB.UpdSimTradingEx:rebuildSimTradingParams params",
 			zap.Error(err))
@@ -214,8 +215,8 @@ func (db *SimTradingDB) UpdSimTradingEx(ctx context.Context, params *tradingpb.S
 	}
 
 	for _, v := range cache.Nodes {
-		if v.Hash == "" {
-			_, hash, err := rebuildSimTradingParams(v.Params)
+		if v.Buf == nil {
+			_, tbuf, err := rebuildSimTradingParams(v.Params)
 			if err != nil {
 				tradingdb2utils.Warn("SimTradingDB.UpdSimTradingEx:rebuildSimTradingParams v.Params",
 					zap.Error(err))
@@ -224,11 +225,11 @@ func (db *SimTradingDB) UpdSimTradingEx(ctx context.Context, params *tradingpb.S
 			}
 
 			// v.Params = cv
-			v.Hash = hash
+			v.Buf = tbuf
 		}
 
-		if chash == v.Hash {
-			v.Hash = ""
+		if bytes.Compare(cbuf, v.Buf) == 0 {
+			v.Buf = nil
 
 			v.LastTs = time.Now().Unix()
 			err = db.updSimTradingNodes(ctx, params, cache)
@@ -250,7 +251,7 @@ func (db *SimTradingDB) UpdSimTradingEx(ctx context.Context, params *tradingpb.S
 			return dbcache, nil
 		}
 
-		v.Hash = ""
+		v.Buf = nil
 
 		// if db.isSameSimTradingParams(params, v.Params) {
 		// 	v.LastTs = time.Now().Unix()
@@ -338,7 +339,7 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 		return nil, nil
 	}
 
-	_, chash, err := rebuildSimTradingParams(params)
+	_, cbuf, err := rebuildSimTradingParams(params)
 	if err != nil {
 		tradingdb2utils.Warn("SimTradingDB.GetSimTrading:rebuildSimTradingParams params",
 			zap.Error(err))
@@ -347,8 +348,8 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 	}
 
 	for _, v := range cache.Nodes {
-		if v.Hash == "" {
-			_, hash, err := rebuildSimTradingParams(v.Params)
+		if v.Buf == nil {
+			_, tbuf, err := rebuildSimTradingParams(v.Params)
 			if err != nil {
 				tradingdb2utils.Warn("SimTradingDB.GetSimTrading:rebuildSimTradingParams v.Params",
 					zap.Error(err))
@@ -357,11 +358,11 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 			}
 
 			// v.Params = cv
-			v.Hash = hash
+			v.Buf = tbuf
 		}
 
-		if chash == v.Hash {
-			v.Hash = ""
+		if bytes.Compare(cbuf, v.Buf) == 0 {
+			v.Buf = nil
 
 			v.LastTs = time.Now().Unix()
 			db.updSimTradingNodes(ctx, params, cache)
@@ -369,7 +370,7 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 			return db.getPNLData(ctx, v.Key)
 		}
 
-		v.Hash = ""
+		v.Buf = nil
 
 		// if db.isSameSimTradingParams(params, v.Params) {
 		// 	v.LastTs = time.Now().Unix()
@@ -430,7 +431,7 @@ func (db *SimTradingDB) GetSimTradingEx(ctx context.Context, params *tradingpb.S
 		return dbcache, nil, nil
 	}
 
-	_, chash, err := rebuildSimTradingParams(params)
+	_, cbuf, err := rebuildSimTradingParams(params)
 	if err != nil {
 		tradingdb2utils.Warn("SimTradingDB.GetSimTradingEx:rebuildSimTradingParams params",
 			zap.Error(err))
@@ -439,8 +440,8 @@ func (db *SimTradingDB) GetSimTradingEx(ctx context.Context, params *tradingpb.S
 	}
 
 	for _, v := range cache.Nodes {
-		if v.Hash == "" {
-			_, hash, err := rebuildSimTradingParams(v.Params)
+		if v.Buf == nil {
+			_, tbuf, err := rebuildSimTradingParams(v.Params)
 			if err != nil {
 				tradingdb2utils.Warn("SimTradingDB.GetSimTradingEx:rebuildSimTradingParams v.Params",
 					zap.Error(err))
@@ -449,11 +450,12 @@ func (db *SimTradingDB) GetSimTradingEx(ctx context.Context, params *tradingpb.S
 			}
 
 			// v.Params = cv
-			v.Hash = hash
+			// v.Hash = hash
+			v.Buf = tbuf
 		}
 
-		if chash == v.Hash {
-			v.Hash = ""
+		if bytes.Compare(cbuf, v.Buf) == 0 {
+			v.Buf = nil
 
 			v.LastTs = time.Now().Unix()
 			db.updSimTradingNodes(ctx, params, cache)
@@ -469,7 +471,7 @@ func (db *SimTradingDB) GetSimTradingEx(ctx context.Context, params *tradingpb.S
 			return dbcache, pnldata, err
 		}
 
-		v.Hash = ""
+		v.Buf = nil
 
 		// if db.isSameSimTradingParams(params, v.Params) {
 		// 	v.LastTs = time.Now().Unix()
