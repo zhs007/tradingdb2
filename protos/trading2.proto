@@ -73,6 +73,7 @@ message CtrlCondition {
     repeated string strVals = 8;                        // 字符串参数
     string name = 9;                                    // 实际的 Control Condition 类型，替代以前的 indicator
     int32 group = 10;                                   // 组，用来处理 (A&&B)||(C&&D) 这样的复杂判断，group之间只可能是或的关系
+    repeated float int64Vals = 11;                      // int64参数
 }
 
 // IndicatorType - indicator类型
@@ -131,7 +132,8 @@ message StopLossParams {
 
 // TakeProfitParams - take profit parameters
 message TakeProfitParams {
-    float profit = 1;
+    float profit = 1;               // 盈利超过这个就止盈
+    bool isFinish = 2;              // 止盈后，是否结束
 }
 
 // InitParams - initial parameters
