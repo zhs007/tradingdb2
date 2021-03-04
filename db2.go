@@ -139,7 +139,7 @@ func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, ts
 		tsEnd = time.Now().Unix()
 	}
 
-	if tsStart >= tsEnd {
+	if tsStart > tsEnd {
 		return candles, nil
 	}
 
