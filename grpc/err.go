@@ -22,4 +22,7 @@ var (
 	ErrDuplicateTaskIndex = errors.New("Duplicate task index")
 	// ErrNoTaskIndex - No task index
 	ErrNoTaskIndex = errors.New("No task index")
+
+	// ErrInvalidParamsTs - Invalid timestamp in params
+	ErrInvalidParamsTs = errors.New("Invalid timestamp in params")
 )

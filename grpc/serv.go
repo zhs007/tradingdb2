@@ -355,6 +355,17 @@ func (serv *Serv) GetSymbols(req *tradingpb.RequestGetSymbols, stream tradingpb.
 }
 
 // SimTrading - simTrading
+func (serv *Serv) checkParams(params *tradingpb.SimTradingParams) error {
+	if params.StartTs > 0 && params.EndTs > 0 {
+		if params.StartTs >= params.EndTs {
+			return ErrInvalidParamsTs
+		}
+	}
+
+	return nil
+}
+
+// SimTrading - simTrading
 func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTrading) (*tradingpb.ReplySimTrading, error) {
 	tradingdb2utils.Info("Serv.SimTrading",
 		tradingdb2utils.JSON("request", req))
@@ -377,6 +388,15 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 
 			return nil, ErrNoAsset
 		}
+	}
+
+	err = serv.checkParams(req.Params)
+	if err != nil {
+		tradingdb2utils.Error("Serv.SimTrading:checkParams",
+			tradingdb2utils.JSON("params", req.Params),
+			zap.Error(err))
+
+		return nil, err
 	}
 
 	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
@@ -458,6 +478,14 @@ func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, ignore
 
 	sort.SliceStable(lstIgnore, func(i, j int) bool {
 		if len(lstIgnore[i].Pnl) <= 0 || len(lstIgnore[j].Pnl) <= 0 {
+			return true
+		}
+
+		if len(lstIgnore[i].Pnl[0].Total.LstCtrl) <= 0 {
+			return false
+		}
+
+		if len(lstIgnore[j].Pnl[0].Total.LstCtrl) <= 0 {
 			return true
 		}
 
@@ -608,7 +636,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 
 	for _, asset := range req.Params.Assets {
 		if !serv.DB2.HasCandles(ctx, asset.Market, asset.Code) {
-			tradingdb2utils.Error("Serv.SimTrading:HasCandles",
+			tradingdb2utils.Error("Serv.simTrading:HasCandles",
 				tradingdb2utils.JSON("asset", asset),
 				zap.Error(ErrNoAsset))
 
@@ -616,6 +644,17 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 
 			return
 		}
+	}
+
+	err = serv.checkParams(req.Params)
+	if err != nil {
+		tradingdb2utils.Error("Serv.simTrading:checkParams",
+			tradingdb2utils.JSON("params", req.Params),
+			zap.Error(err))
+
+		onEnd(req, nil, err, false, dbcache)
+
+		return
 	}
 
 	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
