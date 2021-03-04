@@ -139,6 +139,10 @@ func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, ts
 		tsEnd = time.Now().Unix()
 	}
 
+	if tsStart >= tsEnd {
+		return candles, nil
+	}
+
 	err := db2.AnkaDB.ForEachWithPrefix(ctx, market, makeCandlesDB2KeyPrefix(market, symbol), func(key string, buf []byte) error {
 		cc := &tradingpb.Candles{}
 
