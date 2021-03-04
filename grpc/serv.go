@@ -461,6 +461,14 @@ func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, ignore
 			return true
 		}
 
+		if len(lstIgnore[i].Pnl[0].Total.LstCtrl) <= 0 {
+			return false
+		}
+
+		if len(lstIgnore[j].Pnl[0].Total.LstCtrl) <= 0 {
+			return true
+		}
+
 		return lstIgnore[i].Pnl[0].Total.TotalReturns > lstIgnore[j].Pnl[0].Total.TotalReturns
 	})
 
