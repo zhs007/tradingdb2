@@ -471,7 +471,7 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 }
 
 // procIgnoreReply - simulation trading
-func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, ignoreTotalReturn float32, minNums int) []*tradingpb.ReplySimTrading {
+func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, minNums int) []*tradingpb.ReplySimTrading {
 	if len(lstIgnore) <= minNums {
 		return lstIgnore
 	}
@@ -520,6 +520,10 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 			tradingdb2utils.Debug("Serv.SimTrading2:EOF")
 
 			stt.Stop()
+
+			if len(lstIgnore) > minNums*10 {
+				lstIgnore = serv.procIgnoreReply(lstIgnore, minNums)
+			}
 
 			for _, v := range lstIgnore {
 				err := stream.Send(v)
@@ -598,7 +602,7 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 								lstIgnore = append(lstIgnore, reply)
 								if len(lstIgnore) > minNums*10 {
-									lstIgnore = serv.procIgnoreReply(lstIgnore, req.IgnoreTotalReturn, minNums)
+									lstIgnore = serv.procIgnoreReply(lstIgnore, minNums)
 								}
 							}
 						}
