@@ -521,7 +521,7 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 			stt.Stop()
 
-			if len(lstIgnore) > minNums*10 {
+			if len(lstIgnore) > minNums {
 				lstIgnore = serv.procIgnoreReply(lstIgnore, minNums)
 			}
 
