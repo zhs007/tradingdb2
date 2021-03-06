@@ -143,6 +143,8 @@ func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, ts
 		return candles, nil
 	}
 
+	lst := []*tradingpb.Candle{}
+
 	err := db2.AnkaDB.ForEachWithPrefix(ctx, market, makeCandlesDB2KeyPrefix(market, symbol), func(key string, buf []byte) error {
 		cc := &tradingpb.Candles{}
 
@@ -153,26 +155,12 @@ func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, ts
 
 		if tsStart > 0 || tsEnd > 0 {
 			if offset > 0 {
-				lst := []*tradingpb.Candle{}
-
 				for _, v := range cc.Candles {
 					if v.Ts >= tsStart && v.Ts <= tsEnd {
 						candles.Candles = append(candles.Candles, v)
 					} else if v.Ts < tsStart {
 						lst = append(lst, v)
 					}
-				}
-
-				if len(lst) <= int(offset) {
-					lst = append(lst, candles.Candles...)
-
-					candles.Candles = lst
-				} else {
-					lst1 := lst[len(lst)-int(offset):]
-
-					lst1 = append(lst1, candles.Candles...)
-
-					candles.Candles = lst1
 				}
 			} else {
 				for _, v := range cc.Candles {
@@ -190,6 +178,20 @@ func (db2 *DB2) GetCandles(ctx context.Context, market string, symbol string, ts
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if len(lst) > 0 {
+		if len(lst) <= int(offset) {
+			lst = append(lst, candles.Candles...)
+
+			candles.Candles = lst
+		} else {
+			lst1 := lst[len(lst)-int(offset):]
+
+			lst1 = append(lst1, candles.Candles...)
+
+			candles.Candles = lst1
+		}
 	}
 
 	return candles, nil
