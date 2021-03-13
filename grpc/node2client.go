@@ -44,6 +44,8 @@ func (client *Node2Client) reset() {
 
 	client.conn = nil
 	client.client = nil
+
+	client.lastTaskNums = 1
 }
 
 // GetServerInfo - getServerInfo
