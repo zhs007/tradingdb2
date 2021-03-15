@@ -286,11 +286,11 @@ func (mgr *Node2Mgr) nextTask(ctx context.Context) error {
 
 // runTask -
 func (mgr *Node2Mgr) runTask(ctx context.Context, client *Node2Client, task *Node2Task) {
-	tradingdb2utils.Debug("Node2Mgr.runTask",
-		tradingdb2utils.JSON("params", task.Params),
-		zap.String("servAddr", client.servAddr))
-
 	if client != nil {
+		tradingdb2utils.Debug("Node2Mgr.runTask",
+			tradingdb2utils.JSON("params", task.Params),
+			zap.String("servAddr", client.servAddr))
+
 		reply, err := client.calcPNL(ctx, task.Params, nil)
 		if err != nil {
 			tradingdb2utils.Error("Node2Mgr.runTask:calcPNL",

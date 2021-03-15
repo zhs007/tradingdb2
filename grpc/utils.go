@@ -35,3 +35,9 @@ func GenCalcBaseline(asset *tradingpb.Asset, startTs int64, endTs int64) *tradin
 
 	return params
 }
+
+func setIgnoreReplySimTrading(reply *tradingpb.ReplySimTrading) {
+	for _, v := range reply.Pnl {
+		v.Total.Values = nil
+	}
+}

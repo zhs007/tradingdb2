@@ -6,7 +6,8 @@ import (
 	"math"
 	"sort"
 
-	proto "github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+	// proto "github.com/golang/protobuf/proto"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	"go.uber.org/zap"

@@ -44,9 +44,11 @@ func Test_DB2(t *testing.T) {
 
 	candles, err := db.GetCandles(context.Background(), "", "", 0, 0, 0)
 	assert.Error(t, err)
+	assert.Nil(t, candles)
 
 	candles, err = db.GetCandles(context.Background(), "bitmex", "", 0, 0, 0)
 	assert.Error(t, err)
+	assert.Nil(t, candles)
 
 	candles, err = db.GetCandles(context.Background(), "bitmex", "BTX", 0, 0, 0)
 	assert.NoError(t, err)
