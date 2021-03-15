@@ -25,10 +25,10 @@ func Test_LoadConfig(t *testing.T) {
 	assert.Equal(t, cfg.Nodes[0].Host, "127.0.0.1:123")
 	assert.Equal(t, cfg.Nodes[0].Token, "123456")
 
-	cfg, err = LoadConfig("./cfg/config.yaml.default0")
+	_, err = LoadConfig("./cfg/config.yaml.default0")
 	assert.Error(t, err)
 
-	cfg, err = LoadConfig("./unittestdata/err.yaml")
+	_, err = LoadConfig("./unittestdata/err.yaml")
 	assert.Error(t, err)
 
 	t.Logf("Test_string2LogLevel OK")

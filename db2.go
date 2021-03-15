@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	ankadb "github.com/zhs007/ankadb"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
 const candlesDB2KeyPrefix = "c:"

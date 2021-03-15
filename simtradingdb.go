@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	ankadb "github.com/zhs007/ankadb"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
 const simtradingDBName = "simtrading"
@@ -87,7 +87,7 @@ func (db *SimTradingDB) UpdSimTrading(ctx context.Context, params *tradingpb.Sim
 	}
 
 	for _, v := range cache.Nodes {
-		if bytes.Compare(nbuf, v.Buf) == 0 {
+		if bytes.Equal(nbuf, v.Buf) {
 			// v.Buf = nil
 
 			v.LastTs = time.Now().Unix()
@@ -210,7 +210,7 @@ func (db *SimTradingDB) UpdSimTradingEx(ctx context.Context, params *tradingpb.S
 	}
 
 	for _, v := range cache.Nodes {
-		if bytes.Compare(nbuf, v.Buf) == 0 {
+		if bytes.Equal(nbuf, v.Buf) {
 			// v.Buf = nil
 
 			v.LastTs = time.Now().Unix()
@@ -352,7 +352,7 @@ func (db *SimTradingDB) GetSimTrading(ctx context.Context, params *tradingpb.Sim
 		// 	v.Buf = tbuf
 		// }
 
-		if bytes.Compare(nbuf, v.Buf) == 0 {
+		if bytes.Equal(nbuf, v.Buf) {
 			// v.Buf = nil
 
 			v.LastTs = time.Now().Unix()
@@ -454,7 +454,7 @@ func (db *SimTradingDB) GetSimTradingEx(ctx context.Context, params *tradingpb.S
 		// 	v.Buf = tbuf
 		// }
 
-		if bytes.Compare(nbuf, v.Buf) == 0 {
+		if bytes.Equal(nbuf, v.Buf) {
 			// v.Buf = nil
 
 			v.LastTs = time.Now().Unix()
@@ -557,7 +557,7 @@ func (db *SimTradingDB) saveSimTradingNodes2Ex(ctx context.Context, cache *tradi
 }
 
 // upgradeSimTradingNodes2 - simtrading nodes v1 => simtrading nodes v2
-func (db *SimTradingDB) upgradeSimTradingNodes2(ctx context.Context, params *tradingpb.SimTradingParams, hash string, buf []byte) (
+func (db *SimTradingDB) upgradeSimTradingNodes2(ctx context.Context, params *tradingpb.SimTradingParams, hash string, nbuf []byte) (
 	*tradingpb.SimTradingCache, error) {
 
 	cache2 := &tradingpb.SimTradingCache{}
@@ -622,7 +622,7 @@ func (db *SimTradingDB) upgradeSimTradingNodes2(ctx context.Context, params *tra
 }
 
 // getSimTradingNodes2 - get simtrading nodes
-func (db *SimTradingDB) getSimTradingNodes2(ctx context.Context, params *tradingpb.SimTradingParams, hash string, buf []byte) (
+func (db *SimTradingDB) getSimTradingNodes2(ctx context.Context, params *tradingpb.SimTradingParams, hash string, nbuf []byte) (
 	*tradingpb.SimTradingCache, error) {
 
 	key2 := makeSimTradingNodesDBKey2(params.Assets[0].Market, params.Assets[0].Code, params.StartTs, params.EndTs, hash[:2])

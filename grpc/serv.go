@@ -94,8 +94,6 @@ func (serv *Serv) Stop() {
 
 	serv.MgrNodes.Stop()
 	serv.DBSimTrading.Stop()
-
-	return
 }
 
 // checkBasicRequest - check BasicRequest
@@ -123,7 +121,7 @@ func (serv *Serv) UpdCandles(stream tradingpb.TradingDB2_UpdCandlesServer) error
 					tradingdb2utils.Error("Serv.UpdCandles:Token",
 						zap.Int("length", len(candles.Candles)),
 						zap.Int("times", times),
-						zap.String("token", req.Token),
+						zap.String("token", req.BasicRequest.Token),
 						zap.Error(err))
 
 					return err
@@ -186,7 +184,7 @@ func (serv *Serv) GetCandles(req *tradingpb.RequestGetCandles, stream tradingpb.
 	err := serv.checkBasicRequest(req.BasicRequest)
 	if err != nil {
 		tradingdb2utils.Error("Serv.GetCandles:checkToken",
-			zap.String("token", req.Token),
+			zap.String("token", req.BasicRequest.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
 			zap.Error(err))
 
@@ -231,7 +229,7 @@ func (serv *Serv) UpdSymbol(ctx context.Context, req *tradingpb.RequestUpdSymbol
 	err := serv.checkBasicRequest(req.BasicRequest)
 	if err != nil {
 		tradingdb2utils.Error("Serv.UpdSymbol:checkToken",
-			zap.String("token", req.Token),
+			zap.String("token", req.BasicRequest.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
 			zap.Error(err))
 
@@ -272,7 +270,7 @@ func (serv *Serv) GetSymbol(ctx context.Context, req *tradingpb.RequestGetSymbol
 	err := serv.checkBasicRequest(req.BasicRequest)
 	if err != nil {
 		tradingdb2utils.Error("Serv.GetSymbol:checkToken",
-			zap.String("token", req.Token),
+			zap.String("token", req.BasicRequest.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
 			zap.Error(err))
 
@@ -301,7 +299,7 @@ func (serv *Serv) GetSymbols(req *tradingpb.RequestGetSymbols, stream tradingpb.
 	err := serv.checkBasicRequest(req.BasicRequest)
 	if err != nil {
 		tradingdb2utils.Error("Serv.GetSymbols:checkToken",
-			zap.String("token", req.Token),
+			zap.String("token", req.BasicRequest.Token),
 			zap.Strings("tokens", serv.Cfg.Tokens),
 			zap.Error(err))
 
@@ -471,9 +469,9 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 }
 
 // procIgnoreReply - simulation trading
-func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, minNums int) []*tradingpb.ReplySimTrading {
+func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, minNums int) ([]*tradingpb.ReplySimTrading, []*tradingpb.ReplySimTrading) {
 	if len(lstIgnore) <= minNums {
-		return lstIgnore
+		return lstIgnore, nil
 	}
 
 	sort.SliceStable(lstIgnore, func(i, j int) bool {
@@ -493,12 +491,17 @@ func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, minNum
 	})
 
 	var newlst []*tradingpb.ReplySimTrading
+	var ignorelst []*tradingpb.ReplySimTrading
 
-	for i := 0; i < minNums; i++ {
-		newlst = append(newlst, lstIgnore[i])
+	for i, v := range lstIgnore {
+		if i < minNums {
+			newlst = append(newlst, v)
+		} else {
+			ignorelst = append(ignorelst, v)
+		}
 	}
 
-	return newlst
+	return newlst, ignorelst
 }
 
 // SimTrading2 - simulation trading
@@ -522,13 +525,25 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 			stt.Stop()
 
 			if len(lstIgnore) > minNums {
-				lstIgnore = serv.procIgnoreReply(lstIgnore, minNums)
+				lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums)
+
+				for _, v := range lstlost {
+					setIgnoreReplySimTrading(v)
+
+					err := stream.Send(v)
+					if err != nil {
+						tradingdb2utils.Error("Serv.SimTrading2:simTrading:SendIgnore lost",
+							zap.Error(err))
+					}
+				}
+
+				lstIgnore = lstlast
 			}
 
 			for _, v := range lstIgnore {
 				err := stream.Send(v)
 				if err != nil {
-					tradingdb2utils.Error("Serv.SimTrading2:simTrading:SendIgnore",
+					tradingdb2utils.Error("Serv.SimTrading2:simTrading:SendIgnore last",
 						zap.Error(err))
 				}
 			}
@@ -602,7 +617,19 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 								lstIgnore = append(lstIgnore, reply)
 								if len(lstIgnore) > minNums*10 {
-									lstIgnore = serv.procIgnoreReply(lstIgnore, minNums)
+									lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums)
+
+									for _, v := range lstlost {
+										setIgnoreReplySimTrading(v)
+
+										err := stream.Send(v)
+										if err != nil {
+											tradingdb2utils.Error("Serv.SimTrading2:simTrading:SendIgnore onend lost",
+												zap.Error(err))
+										}
+									}
+
+									lstIgnore = lstlast
 								}
 							}
 						}
@@ -702,6 +729,4 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 		tradingdb2utils.Error("Serv.simTrading:AddTask",
 			zap.Error(err))
 	}
-
-	return
 }
