@@ -469,7 +469,9 @@ func (serv *Serv) SimTrading(ctx context.Context, req *tradingpb.RequestSimTradi
 }
 
 // procIgnoreReply - simulation trading
-func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, minNums int) ([]*tradingpb.ReplySimTrading, []*tradingpb.ReplySimTrading) {
+func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, minNums int, maxIgnoreNums int, isend bool) (
+	[]*tradingpb.ReplySimTrading, []*tradingpb.ReplySimTrading) {
+
 	if len(lstIgnore) <= minNums {
 		return lstIgnore, nil
 	}
@@ -490,18 +492,45 @@ func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, minNum
 		return lstIgnore[i].Pnl[0].Total.TotalReturns > lstIgnore[j].Pnl[0].Total.TotalReturns
 	})
 
-	var newlst []*tradingpb.ReplySimTrading
-	var ignorelst []*tradingpb.ReplySimTrading
+	if maxIgnoreNums > 0 {
+		if isend {
+			var newlst []*tradingpb.ReplySimTrading
+			var ignorelst []*tradingpb.ReplySimTrading
 
-	for i, v := range lstIgnore {
-		if i < minNums {
-			newlst = append(newlst, v)
-		} else {
-			ignorelst = append(ignorelst, v)
+			for i, v := range lstIgnore {
+				if i < minNums {
+					newlst = append(newlst, v)
+				} else if i-minNums < maxIgnoreNums {
+					ignorelst = append(ignorelst, v)
+				} else {
+					break
+				}
+			}
+
+			return newlst, ignorelst
 		}
+
+		var newlst []*tradingpb.ReplySimTrading
+
+		for i, v := range lstIgnore {
+			if i < minNums {
+				newlst = append(newlst, v)
+			} else if i-minNums < maxIgnoreNums {
+				newlst = append(newlst, v)
+			} else {
+				break
+			}
+		}
+
+		return newlst, nil
 	}
 
-	return newlst, ignorelst
+	var newlst []*tradingpb.ReplySimTrading
+	for i := 0; i < minNums; i++ {
+		newlst = append(newlst, lstIgnore[i])
+	}
+
+	return newlst, nil
 }
 
 // SimTrading2 - simulation trading
@@ -511,6 +540,7 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 
 	// ignoreTotalReturn := 1.0 // 忽略总回报低于这个值的数据返回，主要用于大批量训练，减少数据处理量。但实际运算会执行，且cache数据是完整的
 	minNums := 10 // 被忽略的数据里，还是保留这个条数返回，默认是10
+	maxIgnoreNums := 0
 	// sortBy := "totalreturn" // 按什么字段来排序，默认是 totalreturn
 
 	var lstIgnore []*tradingpb.ReplySimTrading
@@ -525,7 +555,7 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 			stt.Stop()
 
 			if len(lstIgnore) > minNums {
-				lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums)
+				lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums, maxIgnoreNums, true)
 
 				for _, v := range lstlost {
 					setIgnoreReplySimTrading(v)
@@ -579,6 +609,10 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 				minNums = int(in.MinNums)
 			}
 
+			if in.MaxIgnoreNums > 0 {
+				maxIgnoreNums = int(in.MaxIgnoreNums)
+			}
+
 			// if in.SortBy != "" {
 			// 	sortBy = in.SortBy
 			// }
@@ -616,18 +650,18 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 								isSendNow = false
 
 								lstIgnore = append(lstIgnore, reply)
-								if len(lstIgnore) > minNums*10 {
-									lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums)
+								if len(lstIgnore) > minNums*10 && len(lstIgnore) > maxIgnoreNums {
+									lstlast, _ := serv.procIgnoreReply(lstIgnore, minNums, maxIgnoreNums, false)
 
-									for _, v := range lstlost {
-										setIgnoreReplySimTrading(v)
+									// for _, v := range lstlost {
+									// 	setIgnoreReplySimTrading(v)
 
-										err := stream.Send(v)
-										if err != nil {
-											tradingdb2utils.Error("Serv.SimTrading2:simTrading:SendIgnore onend lost",
-												zap.Error(err))
-										}
-									}
+									// 	err := stream.Send(v)
+									// 	if err != nil {
+									// 		tradingdb2utils.Error("Serv.SimTrading2:simTrading:SendIgnore onend lost",
+									// 			zap.Error(err))
+									// 	}
+									// }
 
 									lstIgnore = lstlast
 								}
