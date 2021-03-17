@@ -16,6 +16,7 @@ import (
 
 // Serv - tradingdb2 Service
 type Serv struct {
+	tradingpb.UnimplementedTradingDB2Server
 	lis          net.Listener
 	grpcServ     *grpc.Server
 	DB2          *tradingdb2.DB2
