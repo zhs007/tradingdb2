@@ -20,3 +20,4 @@ rm -rf unittestdata/jrj
 rm -rf unittestdata/bitmex
 rm -rf unittestdata/simtrading
 rm -rf utils/*.log
+rm -rf *.log
