@@ -517,6 +517,8 @@ func (serv *Serv) procIgnoreReply(lstIgnore []*tradingpb.ReplySimTrading, minNum
 			if i < minNums {
 				newlst = append(newlst, v)
 			} else if i-minNums < maxIgnoreNums {
+				setIgnoreReplySimTrading(v)
+
 				newlst = append(newlst, v)
 			} else {
 				break
@@ -651,7 +653,8 @@ func (serv *Serv) SimTrading2(stream tradingpb.TradingDB2_SimTrading2Server) err
 								isSendNow = false
 
 								lstIgnore = append(lstIgnore, reply)
-								if len(lstIgnore) > minNums*10 && len(lstIgnore) > maxIgnoreNums {
+								if len(lstIgnore) > minNums*10 {
+									// if len(lstIgnore) > minNums*10 && len(lstIgnore) > maxIgnoreNums {
 									lstlast, _ := serv.procIgnoreReply(lstIgnore, minNums, maxIgnoreNums, false)
 
 									// for _, v := range lstlost {
