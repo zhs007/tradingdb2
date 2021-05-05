@@ -768,3 +768,13 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 			zap.Error(err))
 	}
 }
+
+// SimTrading3 - simulation trading
+func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) error {
+	return nil
+}
+
+// ReqTradingTask3 - request trading task
+func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
+	return nil
+}
