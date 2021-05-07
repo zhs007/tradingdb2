@@ -140,8 +140,8 @@ message ReplySimTrading {
 
 // TradingTaskResult - trading task result
 message TradingTaskResult {
-    repeated PNLData pnl = 1;
-    int64 taskid = 2;
+    PNLData pnl = 1;
+    bytes task = 2;
 }
 
 // RequestTradingTask - request trading task
@@ -153,7 +153,6 @@ message RequestTradingTask {
 // ReplyTradingTask - request trading task
 message ReplyTradingTask {
     SimTradingParams params = 1;
-    int64 taskid = 2;
 }
 
 // TradingDB2 - TradingDB2 service

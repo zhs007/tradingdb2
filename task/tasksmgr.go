@@ -3,6 +3,7 @@ package tradingdb2task
 import (
 	"bytes"
 	"sync"
+	"time"
 
 	"github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
@@ -107,29 +108,36 @@ func (mgr *TasksMgr) delRunning(buf []byte) {
 	}
 }
 
-func (mgr *TasksMgr) OnTaskEnd(params *tradingpb.SimTradingParams) error {
-	buf, err := proto.Marshal(params)
-	if err != nil {
-		tradingdb2utils.Warn("TasksMgr.OnTaskEnd:Marshal",
-			zap.Error(err))
+func (mgr *TasksMgr) OnTaskEnd(result *tradingpb.TradingTaskResult) error {
+	// buf, err := proto.Marshal(params)
+	// if err != nil {
+	// 	tradingdb2utils.Warn("TasksMgr.OnTaskEnd:Marshal",
+	// 		zap.Error(err))
 
-		return err
-	}
+	// 	return err
+	// }
 
 	mgr.mutex.Lock()
 	defer mgr.mutex.Unlock()
 
-	task, isok := mgr.mapTasks[buf]
+	task, isok := mgr.mapTasks[result.Task]
 	if isok {
+		task.PNL = result.Pnl
+
 		for _, v := range task.lstFunc {
 			v(task)
 		}
 
-		delete(mgr.mapTasks, buf)
-		mgr.delRunning(buf)
+		delete(mgr.mapTasks, result.Task)
+		mgr.delRunning(result.Task)
+
+		return nil
 	}
 
-	return nil
+	tradingdb2utils.Warn("TasksMgr.OnTaskEnd",
+		zap.Error(ErrInvalidTask))
+
+	return ErrInvalidTask
 }
 
 func (mgr *TasksMgr) StartTask(onStart FuncOnTaskStart) error {
@@ -143,6 +151,9 @@ func (mgr *TasksMgr) StartTask(onStart FuncOnTaskStart) error {
 		task, isok := mgr.mapTasks[buf]
 		if isok {
 			mgr.lstRunning = append(mgr.lstRunning, buf)
+
+			task.StartTs = time.Now().Unix()
+
 			onStart(task)
 
 			return nil
