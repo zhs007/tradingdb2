@@ -13,6 +13,9 @@ import (
 // FuncOnSimTradingTaskEnd -
 type FuncOnSimTradingTaskEnd func(*tradingpb.RequestSimTrading, *tradingpb.ReplySimTrading, error, bool, *tradingdb2.SimTradingDBCacheObj)
 
+// FuncOnSimTrading3TaskEnd -
+type FuncOnSimTrading3TaskEnd func(*tradingpb.RequestSimTrading, *tradingpb.ReplySimTrading, error, bool)
+
 // SimTradingTask -
 type SimTradingTask struct {
 	Req   *tradingpb.RequestSimTrading

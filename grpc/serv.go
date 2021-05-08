@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
+	tradingdb2task "github.com/zhs007/tradingdb2/task"
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
 	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
 	tradingdb2ver "github.com/zhs007/tradingdb2/ver"
@@ -17,12 +18,14 @@ import (
 // Serv - tradingdb2 Service
 type Serv struct {
 	tradingpb.UnimplementedTradingDB2Server
-	lis          net.Listener
-	grpcServ     *grpc.Server
-	DB2          *tradingdb2.DB2
-	Cfg          *tradingdb2.Config
-	DBSimTrading *tradingdb2.SimTradingDB
-	MgrNodes     *Node2Mgr
+	lis           net.Listener
+	grpcServ      *grpc.Server
+	DB2           *tradingdb2.DB2
+	Cfg           *tradingdb2.Config
+	DBSimTrading  *tradingdb2.SimTradingDB
+	SimTradingDB2 *tradingdb2.SimTradingDB2
+	MgrNodes      *Node2Mgr
+	tasksMgr      *tradingdb2task.TasksMgr
 }
 
 // NewServ -
@@ -44,6 +47,22 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 		return nil, err
 	}
 
+	simTradingDB2, err := tradingdb2.NewSimTradingDB2(cfg.DBPath, "", cfg.DBEngine)
+	if err != nil {
+		tradingdb2utils.Error("NewServ.NewSimTradingDB2",
+			zap.Error(err))
+
+		return nil, err
+	}
+
+	tasksMgr := tradingdb2task.NewTasksMgr()
+	// if err != nil {
+	// 	tradingdb2utils.Error("NewServ.NewSimTradingDB2",
+	// 		zap.Error(err))
+
+	// 	return nil, err
+	// }
+
 	lis, err := net.Listen("tcp", cfg.BindAddr)
 	if err != nil {
 		tradingdb2utils.Error("NewServ.Listen",
@@ -63,12 +82,14 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 	}
 
 	serv := &Serv{
-		lis:          lis,
-		grpcServ:     grpcServ,
-		DB2:          db,
-		DBSimTrading: dbSimTrading,
-		Cfg:          cfg,
-		MgrNodes:     mgrNodes,
+		lis:           lis,
+		grpcServ:      grpcServ,
+		DB2:           db,
+		DBSimTrading:  dbSimTrading,
+		Cfg:           cfg,
+		MgrNodes:      mgrNodes,
+		SimTradingDB2: simTradingDB2,
+		tasksMgr:      tasksMgr,
 	}
 
 	tradingpb.RegisterTradingDB2Server(grpcServ, serv)
@@ -767,4 +788,218 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 		tradingdb2utils.Error("Serv.simTrading:AddTask",
 			zap.Error(err))
 	}
+}
+
+// simTrading3 - simTrading3
+func (serv *Serv) simTrading3(ctx context.Context, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTrading3TaskEnd) {
+	// tradingdb2utils.Info("Serv.simTrading",
+	// 	tradingdb2utils.JSON("request", req))
+
+	err := serv.checkBasicRequest(req.BasicRequest)
+	if err != nil {
+		tradingdb2utils.Error("Serv.simTrading3:checkToken",
+			zap.String("token", req.BasicRequest.Token),
+			zap.Strings("tokens", serv.Cfg.Tokens),
+			zap.Error(err))
+
+		onEnd(req, nil, err, false)
+
+		return
+	}
+
+	for _, asset := range req.Params.Assets {
+		if !serv.DB2.HasCandles(ctx, asset.Market, asset.Code) {
+			tradingdb2utils.Error("Serv.simTrading3:HasCandles",
+				tradingdb2utils.JSON("asset", asset),
+				zap.Error(ErrNoAsset))
+
+			onEnd(req, nil, ErrNoAsset, false)
+
+			return
+		}
+	}
+
+	err = serv.checkParams(req.Params)
+	if err != nil {
+		tradingdb2utils.Error("Serv.simTrading:checkParams",
+			tradingdb2utils.JSON("params", req.Params),
+			zap.Error(err))
+
+		onEnd(req, nil, err, false)
+
+		return
+	}
+
+	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
+	if err != nil {
+		tradingdb2utils.Error("Serv.simTrading:FixSimTradingParams",
+			zap.Error(err))
+
+		onEnd(req, nil, err, false)
+
+		return
+	}
+
+	if !req.IgnoreCache {
+		pnl, err := serv.SimTradingDB2.GetSimTrading(ctx, params)
+
+		if err != nil {
+			tradingdb2utils.Error("Serv.simTrading3:GetSimTrading",
+				zap.Error(err))
+
+			onEnd(req, nil, err, false)
+
+			return
+		}
+
+		if pnl != nil {
+			// tradingdb2utils.Debug("Serv.simTrading:Cached")
+
+			onEnd(req, &tradingpb.ReplySimTrading{
+				Pnl: []*tradingpb.PNLData{
+					pnl,
+				},
+			}, err, true)
+
+			return
+		}
+	}
+
+	err = serv.tasksMgr.AddTask(req.Params, func(task *tradingdb2task.Task) error {
+		onEnd(req, &tradingpb.ReplySimTrading{
+			Pnl: []*tradingpb.PNLData{
+				task.PNL,
+			},
+		}, nil, false)
+
+		return nil
+	})
+	if err != nil {
+		tradingdb2utils.Error("Serv.simTrading3:AddTask",
+			zap.Error(err))
+	}
+}
+
+// SimTrading3 - simulation trading
+func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) error {
+	minNums := 10 // 被忽略的数据里，还是保留这个条数返回，默认是10
+	maxIgnoreNums := 0
+	var lstIgnore []*tradingpb.ReplySimTrading
+
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			tradingdb2utils.Debug("Serv.SimTrading3:EOF")
+
+			if len(lstIgnore) > minNums {
+				lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums, maxIgnoreNums, true)
+
+				for _, v := range lstlost {
+					setIgnoreReplySimTrading(v)
+
+					err := stream.Send(v)
+					if err != nil {
+						tradingdb2utils.Error("Serv.SimTrading3:simTrading:SendIgnore lost",
+							zap.Error(err))
+					}
+				}
+
+				lstIgnore = lstlast
+			}
+
+			for _, v := range lstIgnore {
+				err := stream.Send(v)
+				if err != nil {
+					tradingdb2utils.Error("Serv.SimTrading3:simTrading:SendIgnore last",
+						zap.Error(err))
+				}
+			}
+
+			tradingdb2utils.Debug("Serv.SimTrading3:End")
+
+			return nil
+		}
+
+		if err != nil {
+			tradingdb2utils.Error("Serv.SimTrading3",
+				zap.Error(err))
+
+			return err
+		}
+
+		if in != nil {
+			if in.MinNums > 0 {
+				minNums = int(in.MinNums)
+			}
+
+			if in.MaxIgnoreNums > 0 {
+				maxIgnoreNums = int(in.MaxIgnoreNums)
+			}
+
+			// 这个接口不是阻塞的，错误没法直接传递到外面来
+
+			serv.simTrading3(stream.Context(), in,
+				func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool) {
+					if err != nil {
+						tradingdb2utils.Error("Serv.SimTrading3:simTrading:OnEnd",
+							zap.Error(err))
+
+						// errST = err
+					} else if reply != nil {
+						isSendNow := true
+
+						if len(reply.Pnl) > 0 {
+							reply.Pnl[0].Title = req.Params.Title
+
+							if !inCache {
+								// 如果不是incache，才需要更新缓存
+								err := serv.SimTradingDB2.UpdSimTrading(stream.Context(), req.Params, reply.Pnl[0])
+								if err != nil {
+									tradingdb2utils.Error("Serv.SimTrading3:UpdSimTrading",
+										zap.Error(err))
+
+									return
+								}
+							}
+
+							// 不发明细
+							if req.IgnoreTotalReturn > 0 && reply.Pnl[0].Total != nil && reply.Pnl[0].Total.TotalReturns < req.IgnoreTotalReturn {
+								isSendNow = false
+
+								lstIgnore = append(lstIgnore, reply)
+								if len(lstIgnore) > minNums*10 {
+									// if len(lstIgnore) > minNums*10 && len(lstIgnore) > maxIgnoreNums {
+									lstlast, _ := serv.procIgnoreReply(lstIgnore, minNums, maxIgnoreNums, false)
+
+									// for _, v := range lstlost {
+									// 	setIgnoreReplySimTrading(v)
+
+									// 	err := stream.Send(v)
+									// 	if err != nil {
+									// 		tradingdb2utils.Error("Serv.SimTrading2:simTrading:SendIgnore onend lost",
+									// 			zap.Error(err))
+									// 	}
+									// }
+
+									lstIgnore = lstlast
+								}
+							}
+						}
+
+						if isSendNow {
+							err := stream.Send(reply)
+							if err != nil {
+								tradingdb2utils.Error("Serv.UpdSimTrading:simTrading:Send",
+									zap.Error(err))
+							}
+						}
+					}
+				})
+		}
+	}
+}
+
+// ReqTradingTask3 - request trading task
+func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
+	return nil
 }

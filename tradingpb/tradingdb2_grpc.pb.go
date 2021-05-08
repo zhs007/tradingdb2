@@ -33,6 +33,10 @@ type TradingDB2Client interface {
 	SimTrading(ctx context.Context, in *RequestSimTrading, opts ...grpc.CallOption) (*ReplySimTrading, error)
 	// simTrading2 - simulation trading
 	SimTrading2(ctx context.Context, opts ...grpc.CallOption) (TradingDB2_SimTrading2Client, error)
+	// simTrading3 - simulation trading
+	SimTrading3(ctx context.Context, opts ...grpc.CallOption) (TradingDB2_SimTrading3Client, error)
+	// reqTradingTask3 - request trading task
+	ReqTradingTask3(ctx context.Context, opts ...grpc.CallOption) (TradingDB2_ReqTradingTask3Client, error)
 }
 
 type tradingDB2Client struct {
@@ -199,6 +203,68 @@ func (x *tradingDB2SimTrading2Client) Recv() (*ReplySimTrading, error) {
 	return m, nil
 }
 
+func (c *tradingDB2Client) SimTrading3(ctx context.Context, opts ...grpc.CallOption) (TradingDB2_SimTrading3Client, error) {
+	stream, err := c.cc.NewStream(ctx, &TradingDB2_ServiceDesc.Streams[4], "/tradingpb.TradingDB2/simTrading3", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &tradingDB2SimTrading3Client{stream}
+	return x, nil
+}
+
+type TradingDB2_SimTrading3Client interface {
+	Send(*RequestSimTrading) error
+	Recv() (*ReplySimTrading, error)
+	grpc.ClientStream
+}
+
+type tradingDB2SimTrading3Client struct {
+	grpc.ClientStream
+}
+
+func (x *tradingDB2SimTrading3Client) Send(m *RequestSimTrading) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *tradingDB2SimTrading3Client) Recv() (*ReplySimTrading, error) {
+	m := new(ReplySimTrading)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *tradingDB2Client) ReqTradingTask3(ctx context.Context, opts ...grpc.CallOption) (TradingDB2_ReqTradingTask3Client, error) {
+	stream, err := c.cc.NewStream(ctx, &TradingDB2_ServiceDesc.Streams[5], "/tradingpb.TradingDB2/reqTradingTask3", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &tradingDB2ReqTradingTask3Client{stream}
+	return x, nil
+}
+
+type TradingDB2_ReqTradingTask3Client interface {
+	Send(*RequestTradingTask) error
+	Recv() (*ReplyTradingTask, error)
+	grpc.ClientStream
+}
+
+type tradingDB2ReqTradingTask3Client struct {
+	grpc.ClientStream
+}
+
+func (x *tradingDB2ReqTradingTask3Client) Send(m *RequestTradingTask) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *tradingDB2ReqTradingTask3Client) Recv() (*ReplyTradingTask, error) {
+	m := new(ReplyTradingTask)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // TradingDB2Server is the server API for TradingDB2 service.
 // All implementations must embed UnimplementedTradingDB2Server
 // for forward compatibility
@@ -218,6 +284,10 @@ type TradingDB2Server interface {
 	SimTrading(context.Context, *RequestSimTrading) (*ReplySimTrading, error)
 	// simTrading2 - simulation trading
 	SimTrading2(TradingDB2_SimTrading2Server) error
+	// simTrading3 - simulation trading
+	SimTrading3(TradingDB2_SimTrading3Server) error
+	// reqTradingTask3 - request trading task
+	ReqTradingTask3(TradingDB2_ReqTradingTask3Server) error
 	mustEmbedUnimplementedTradingDB2Server()
 }
 
@@ -245,6 +315,12 @@ func (UnimplementedTradingDB2Server) SimTrading(context.Context, *RequestSimTrad
 }
 func (UnimplementedTradingDB2Server) SimTrading2(TradingDB2_SimTrading2Server) error {
 	return status.Errorf(codes.Unimplemented, "method SimTrading2 not implemented")
+}
+func (UnimplementedTradingDB2Server) SimTrading3(TradingDB2_SimTrading3Server) error {
+	return status.Errorf(codes.Unimplemented, "method SimTrading3 not implemented")
+}
+func (UnimplementedTradingDB2Server) ReqTradingTask3(TradingDB2_ReqTradingTask3Server) error {
+	return status.Errorf(codes.Unimplemented, "method ReqTradingTask3 not implemented")
 }
 func (UnimplementedTradingDB2Server) mustEmbedUnimplementedTradingDB2Server() {}
 
@@ -407,6 +483,58 @@ func (x *tradingDB2SimTrading2Server) Recv() (*RequestSimTrading, error) {
 	return m, nil
 }
 
+func _TradingDB2_SimTrading3_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(TradingDB2Server).SimTrading3(&tradingDB2SimTrading3Server{stream})
+}
+
+type TradingDB2_SimTrading3Server interface {
+	Send(*ReplySimTrading) error
+	Recv() (*RequestSimTrading, error)
+	grpc.ServerStream
+}
+
+type tradingDB2SimTrading3Server struct {
+	grpc.ServerStream
+}
+
+func (x *tradingDB2SimTrading3Server) Send(m *ReplySimTrading) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *tradingDB2SimTrading3Server) Recv() (*RequestSimTrading, error) {
+	m := new(RequestSimTrading)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _TradingDB2_ReqTradingTask3_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(TradingDB2Server).ReqTradingTask3(&tradingDB2ReqTradingTask3Server{stream})
+}
+
+type TradingDB2_ReqTradingTask3Server interface {
+	Send(*ReplyTradingTask) error
+	Recv() (*RequestTradingTask, error)
+	grpc.ServerStream
+}
+
+type tradingDB2ReqTradingTask3Server struct {
+	grpc.ServerStream
+}
+
+func (x *tradingDB2ReqTradingTask3Server) Send(m *ReplyTradingTask) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *tradingDB2ReqTradingTask3Server) Recv() (*RequestTradingTask, error) {
+	m := new(RequestTradingTask)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // TradingDB2_ServiceDesc is the grpc.ServiceDesc for TradingDB2 service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -446,6 +574,18 @@ var TradingDB2_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "simTrading2",
 			Handler:       _TradingDB2_SimTrading2_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "simTrading3",
+			Handler:       _TradingDB2_SimTrading3_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "reqTradingTask3",
+			Handler:       _TradingDB2_ReqTradingTask3_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

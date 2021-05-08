@@ -14,7 +14,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/xuri/efp v0.0.0-20210311002341-9c6784cb2d17 // indirect
 	github.com/zhs007/adacore v0.3.9
-	github.com/zhs007/ankadb v0.3.33
+	github.com/zhs007/ankadb v0.3.35
 	github.com/zhs007/chatbot v0.6.5
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b // indirect
@@ -23,7 +23,6 @@ require (
 	golang.org/x/text v0.3.5 // indirect
 	google.golang.org/genproto v0.0.0-20210315173758-2651cd453018 // indirect
 	google.golang.org/grpc v1.36.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v2 v2.4.0
 )
