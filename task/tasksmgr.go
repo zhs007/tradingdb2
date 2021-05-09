@@ -166,6 +166,8 @@ func (mgr *TasksMgr) StartTask(onStart FuncOnTaskStart) error {
 		}
 	}
 
+	onStart(nil)
+
 	return nil
 }
 

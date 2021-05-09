@@ -1040,5 +1040,57 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 
 // ReqTradingTask3 - request trading task
 func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
-	return nil
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+
+		if err != nil {
+			tradingdb2utils.Error("Serv.ReqTradingTask3",
+				zap.Error(err))
+
+			return err
+		}
+
+		if in != nil {
+			err := serv.checkBasicRequest(in.BasicRequest)
+			if err != nil {
+				tradingdb2utils.Error("Serv.ReqTradingTask3:checkToken",
+					zap.String("token", in.BasicRequest.Token),
+					zap.Strings("tokens", serv.Cfg.Tokens),
+					zap.Error(err))
+
+				return err
+			}
+
+			if in.Result == nil {
+				err = serv.tasksMgr.StartTask(func(task *tradingdb2task.Task) error {
+					if task == nil {
+						stream.Send(&tradingpb.ReplyTradingTask{})
+					} else {
+						stream.Send(&tradingpb.ReplyTradingTask{
+							Params: task.Params,
+						})
+					}
+
+					return nil
+				})
+				if err != nil {
+					tradingdb2utils.Error("Serv.ReqTradingTask3:StartTask",
+						zap.Error(err))
+
+					return err
+				}
+			} else {
+				err = serv.tasksMgr.OnTaskEnd(in.Result)
+				if err != nil {
+					tradingdb2utils.Error("Serv.ReqTradingTask3:OnTaskEnd",
+						zap.Error(err))
+
+					return err
+				}
+			}
+		}
+	}
 }
