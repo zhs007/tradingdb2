@@ -13,16 +13,20 @@ import (
 
 // TasksMgr - TasksMgr
 type TasksMgr struct {
-	mapTasks   map[interface{}]*Task
-	mutex      sync.Mutex
-	lstKeys    []interface{}
-	lstRunning []interface{}
+	mapTasks          map[interface{}]*Task
+	mutex             sync.Mutex
+	lstKeys           []interface{}
+	lstRunning        []interface{}
+	latestTaskGroupID int
+	mapTaskGroup      map[int]*TaskGroup
 }
 
 // NewTasksMgr - new TasksMgr
 func NewTasksMgr() *TasksMgr {
 	return &TasksMgr{
-		mapTasks: make(map[interface{}]*Task),
+		mapTasks:          make(map[interface{}]*Task),
+		latestTaskGroupID: 0,
+		mapTaskGroup:      make(map[int]*TaskGroup),
 	}
 }
 
@@ -42,7 +46,7 @@ func (mgr *TasksMgr) HasTask(params *tradingpb.SimTradingParams) bool {
 	return isok
 }
 
-func (mgr *TasksMgr) AddTask(params *tradingpb.SimTradingParams, onEnd FuncOnTaskEnd) error {
+func (mgr *TasksMgr) AddTask(taskGroupID int, params *tradingpb.SimTradingParams, onEnd FuncOnTaskEnd) error {
 	buf, err := proto.Marshal(params)
 	if err != nil {
 		tradingdb2utils.Warn("TasksMgr.AddTask:Marshal",
@@ -58,7 +62,8 @@ func (mgr *TasksMgr) AddTask(params *tradingpb.SimTradingParams, onEnd FuncOnTas
 		_, isok := mgr.mapTasks[buf]
 		if !isok {
 			mgr.mapTasks[buf] = &Task{
-				Params: params,
+				Params:      params,
+				TaskGroupID: taskGroupID,
 			}
 
 			mgr.lstKeys = append(mgr.lstKeys, buf)
@@ -72,8 +77,9 @@ func (mgr *TasksMgr) AddTask(params *tradingpb.SimTradingParams, onEnd FuncOnTas
 		task.lstFunc = append(task.lstFunc, onEnd)
 	} else {
 		mgr.mapTasks[buf] = &Task{
-			Params:  params,
-			lstFunc: []FuncOnTaskEnd{onEnd},
+			Params:      params,
+			lstFunc:     []FuncOnTaskEnd{onEnd},
+			TaskGroupID: taskGroupID,
 		}
 
 		mgr.lstKeys = append(mgr.lstKeys, buf)
@@ -161,4 +167,66 @@ func (mgr *TasksMgr) StartTask(onStart FuncOnTaskStart) error {
 	}
 
 	return nil
+}
+
+func (mgr *TasksMgr) NewTaskGroup() int {
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	mgr.latestTaskGroupID++
+
+	mgr.mapTaskGroup[mgr.latestTaskGroupID] = &TaskGroup{
+		TaskGroupID: mgr.latestTaskGroupID,
+		StartTs:     time.Now().Unix(),
+	}
+
+	return mgr.latestTaskGroupID
+}
+
+func (mgr *TasksMgr) IsTaskGroupFinished(taskGroupID int) bool {
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	for _, v := range mgr.mapTasks {
+		if v.TaskGroupID == taskGroupID {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (mgr *TasksMgr) LogTaskGroup(taskGroupID int, str string) {
+	logts := time.Now().Unix()
+
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	tg, isok := mgr.mapTaskGroup[taskGroupID]
+	if isok {
+		tradingdb2utils.Info(str,
+			zap.Int("taskGroupID", taskGroupID),
+			zap.Duration("Running", time.Duration(logts-tg.StartTs)))
+	}
+}
+
+func (mgr *TasksMgr) WaitTaskGroupFinished(taskGroupID int) {
+	logts := time.Now().Unix()
+
+	mgr.LogTaskGroup(taskGroupID, "TasksMgr.WaitTaskGroupFinished")
+
+	for {
+		if mgr.IsTaskGroupFinished(taskGroupID) {
+			break
+		}
+
+		time.Sleep(5 * time.Second)
+
+		ts := time.Now().Unix()
+		if ts-logts >= int64(30*time.Second) {
+			mgr.LogTaskGroup(taskGroupID, "TasksMgr.WaitTaskGroupFinished...")
+
+			logts = ts
+		}
+	}
 }

@@ -791,7 +791,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 }
 
 // simTrading3 - simTrading3
-func (serv *Serv) simTrading3(ctx context.Context, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTrading3TaskEnd) {
+func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTrading3TaskEnd) {
 	// tradingdb2utils.Info("Serv.simTrading",
 	// 	tradingdb2utils.JSON("request", req))
 
@@ -900,7 +900,7 @@ func (serv *Serv) simTrading3(ctx context.Context, req *tradingpb.RequestSimTrad
 		}
 	}
 
-	err = serv.tasksMgr.AddTask(req.Params, func(task *tradingdb2task.Task) error {
+	err = serv.tasksMgr.AddTask(taskGroupID, req.Params, func(task *tradingdb2task.Task) error {
 		onEnd(req, &tradingpb.ReplySimTrading{
 			Pnl: []*tradingpb.PNLData{
 				task.PNL,
@@ -921,10 +921,14 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 	maxIgnoreNums := 0
 	var lstIgnore []*tradingpb.ReplySimTrading
 
+	curTaskGroupID := serv.tasksMgr.NewTaskGroup()
+
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
 			tradingdb2utils.Debug("Serv.SimTrading3:EOF")
+
+			serv.tasksMgr.WaitTaskGroupFinished(curTaskGroupID)
 
 			if len(lstIgnore) > minNums {
 				lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums, maxIgnoreNums, true)
@@ -973,7 +977,7 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 
 			// 这个接口不是阻塞的，错误没法直接传递到外面来
 
-			serv.simTrading3(stream.Context(), in,
+			serv.simTrading3(stream.Context(), curTaskGroupID, in,
 				func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool) {
 					if err != nil {
 						tradingdb2utils.Error("Serv.SimTrading3:simTrading:OnEnd",
