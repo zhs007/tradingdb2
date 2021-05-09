@@ -611,3 +611,34 @@ func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.Sim
 
 	return np, buf, fmt.Sprintf("%x", bs), nil
 }
+
+func rebuildSimTradingParams2(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, []byte, error) {
+	nmsg := proto.Clone(params)
+	np, isok := nmsg.(*tradingpb.SimTradingParams)
+	if !isok {
+		tradingdb2utils.Warn("rebuildSimTradingParams2:Clone",
+			zap.Error(ErrInvalidSimTradingParams))
+
+		return nil, nil, ErrInvalidSimTradingParams
+	}
+
+	np.Title = ""
+
+	err := sortStrategies(np.Strategies)
+	if err != nil {
+		tradingdb2utils.Warn("rebuildSimTradingParams2:sortStrategys",
+			zap.Error(err))
+
+		return nil, nil, err
+	}
+
+	buf, err := proto.Marshal(np)
+	if err != nil {
+		tradingdb2utils.Warn("rebuildSimTradingParams2:Marshal",
+			zap.Error(err))
+
+		return nil, nil, err
+	}
+
+	return np, buf, nil
+}

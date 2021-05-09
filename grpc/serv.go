@@ -863,6 +863,41 @@ func (serv *Serv) simTrading3(ctx context.Context, req *tradingpb.RequestSimTrad
 
 			return
 		}
+
+		//！！ 这里开始是兼容SimTradingDB的
+		isok, err := serv.DBSimTrading.Upgrade2SimTradingDB2(ctx, params, serv.SimTradingDB2)
+		if err != nil {
+			tradingdb2utils.Error("Serv.simTrading3:Upgrade2SimTradingDB2",
+				zap.Error(err))
+
+			onEnd(req, nil, err, false)
+
+			return
+		}
+
+		if isok {
+			pnl, err = serv.SimTradingDB2.GetSimTrading(ctx, params)
+			if err != nil {
+				tradingdb2utils.Error("Serv.simTrading3:GetSimTrading&Upgrade2SimTradingDB2",
+					zap.Error(err))
+
+				onEnd(req, nil, err, false)
+
+				return
+			}
+
+			if pnl != nil {
+				// tradingdb2utils.Debug("Serv.simTrading:Cached")
+
+				onEnd(req, &tradingpb.ReplySimTrading{
+					Pnl: []*tradingpb.PNLData{
+						pnl,
+					},
+				}, err, true)
+
+				return
+			}
+		}
 	}
 
 	err = serv.tasksMgr.AddTask(req.Params, func(task *tradingdb2task.Task) error {

@@ -53,9 +53,9 @@ func NewSimTradingDB2(dbpath string, httpAddr string, engine string) (*SimTradin
 
 // UpdSimTrading - update simulation trading
 func (db *SimTradingDB2) UpdSimTrading(ctx context.Context, params *tradingpb.SimTradingParams, pnldata *tradingpb.PNLData) error {
-	_, nbuf, _, err := rebuildSimTradingParams(params)
+	_, nbuf, err := rebuildSimTradingParams2(params)
 	if err != nil {
-		tradingdb2utils.Warn("SimTradingDB2.UpdSimTrading:rebuildSimTradingParams",
+		tradingdb2utils.Warn("SimTradingDB2.UpdSimTrading:rebuildSimTradingParams2",
 			zap.Error(err))
 
 		return err
@@ -87,9 +87,9 @@ func (db *SimTradingDB2) UpdSimTrading(ctx context.Context, params *tradingpb.Si
 // GetSimTrading - get candles
 func (db *SimTradingDB2) GetSimTrading(ctx context.Context, params *tradingpb.SimTradingParams) (
 	*tradingpb.PNLData, error) {
-	_, nbuf, _, err := rebuildSimTradingParams(params)
+	_, nbuf, err := rebuildSimTradingParams2(params)
 	if err != nil {
-		tradingdb2utils.Warn("SimTradingDB2.GetSimTrading:rebuildSimTradingParams",
+		tradingdb2utils.Warn("SimTradingDB2.GetSimTrading:rebuildSimTradingParams2",
 			zap.Error(err))
 
 		return nil, err
