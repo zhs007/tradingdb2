@@ -791,7 +791,7 @@ func (serv *Serv) simTrading(ctx context.Context, mgrTasks *SimTradingTasksMgr, 
 }
 
 // simTrading3 - simTrading3
-func (serv *Serv) simTrading3(ctx context.Context, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTrading3TaskEnd) {
+func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *tradingpb.RequestSimTrading, onEnd FuncOnSimTrading3TaskEnd) {
 	// tradingdb2utils.Info("Serv.simTrading",
 	// 	tradingdb2utils.JSON("request", req))
 
@@ -830,7 +830,7 @@ func (serv *Serv) simTrading3(ctx context.Context, req *tradingpb.RequestSimTrad
 		return
 	}
 
-	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
+	nparams, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
 	if err != nil {
 		tradingdb2utils.Error("Serv.simTrading:FixSimTradingParams",
 			zap.Error(err))
@@ -840,8 +840,18 @@ func (serv *Serv) simTrading3(ctx context.Context, req *tradingpb.RequestSimTrad
 		return
 	}
 
+	params2, err := tradingdb2.RebuildSimTradingParams3(nparams)
+	if err != nil {
+		tradingdb2utils.Error("Serv.simTrading3:RebuildSimTradingParams3",
+			zap.Error(err))
+
+		onEnd(req, nil, err, false)
+
+		return
+	}
+
 	if !req.IgnoreCache {
-		pnl, err := serv.SimTradingDB2.GetSimTrading(ctx, params)
+		pnl, err := serv.SimTradingDB2.GetSimTrading(ctx, params2)
 
 		if err != nil {
 			tradingdb2utils.Error("Serv.simTrading3:GetSimTrading",
@@ -863,9 +873,44 @@ func (serv *Serv) simTrading3(ctx context.Context, req *tradingpb.RequestSimTrad
 
 			return
 		}
+
+		//！！ 这里开始是兼容SimTradingDB的
+		isok, err := serv.DBSimTrading.Upgrade2SimTradingDB2(ctx, params2, serv.SimTradingDB2)
+		if err != nil {
+			tradingdb2utils.Error("Serv.simTrading3:Upgrade2SimTradingDB2",
+				zap.Error(err))
+
+			onEnd(req, nil, err, false)
+
+			return
+		}
+
+		if isok {
+			pnl, err = serv.SimTradingDB2.GetSimTrading(ctx, params2)
+			if err != nil {
+				tradingdb2utils.Error("Serv.simTrading3:GetSimTrading&Upgrade2SimTradingDB2",
+					zap.Error(err))
+
+				onEnd(req, nil, err, false)
+
+				return
+			}
+
+			if pnl != nil {
+				// tradingdb2utils.Debug("Serv.simTrading:Cached")
+
+				onEnd(req, &tradingpb.ReplySimTrading{
+					Pnl: []*tradingpb.PNLData{
+						pnl,
+					},
+				}, err, true)
+
+				return
+			}
+		}
 	}
 
-	err = serv.tasksMgr.AddTask(req.Params, func(task *tradingdb2task.Task) error {
+	err = serv.tasksMgr.AddTask(taskGroupID, params2, func(task *tradingdb2task.Task) error {
 		onEnd(req, &tradingpb.ReplySimTrading{
 			Pnl: []*tradingpb.PNLData{
 				task.PNL,
@@ -886,10 +931,14 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 	maxIgnoreNums := 0
 	var lstIgnore []*tradingpb.ReplySimTrading
 
+	curTaskGroupID := serv.tasksMgr.NewTaskGroup()
+
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
 			tradingdb2utils.Debug("Serv.SimTrading3:EOF")
+
+			serv.tasksMgr.WaitTaskGroupFinished(curTaskGroupID)
 
 			if len(lstIgnore) > minNums {
 				lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums, maxIgnoreNums, true)
@@ -938,7 +987,7 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 
 			// 这个接口不是阻塞的，错误没法直接传递到外面来
 
-			serv.simTrading3(stream.Context(), in,
+			serv.simTrading3(stream.Context(), curTaskGroupID, in,
 				func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool) {
 					if err != nil {
 						tradingdb2utils.Error("Serv.SimTrading3:simTrading:OnEnd",
@@ -1001,5 +1050,57 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 
 // ReqTradingTask3 - request trading task
 func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
-	return nil
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+
+		if err != nil {
+			tradingdb2utils.Error("Serv.ReqTradingTask3",
+				zap.Error(err))
+
+			return err
+		}
+
+		if in != nil {
+			err := serv.checkBasicRequest(in.BasicRequest)
+			if err != nil {
+				tradingdb2utils.Error("Serv.ReqTradingTask3:checkToken",
+					zap.String("token", in.BasicRequest.Token),
+					zap.Strings("tokens", serv.Cfg.Tokens),
+					zap.Error(err))
+
+				return err
+			}
+
+			if in.Result == nil {
+				err = serv.tasksMgr.StartTask(func(task *tradingdb2task.Task) error {
+					if task == nil {
+						stream.Send(&tradingpb.ReplyTradingTask{})
+					} else {
+						stream.Send(&tradingpb.ReplyTradingTask{
+							Params: task.Params,
+						})
+					}
+
+					return nil
+				})
+				if err != nil {
+					tradingdb2utils.Error("Serv.ReqTradingTask3:StartTask",
+						zap.Error(err))
+
+					return err
+				}
+			} else {
+				err = serv.tasksMgr.OnTaskEnd(in.Result)
+				if err != nil {
+					tradingdb2utils.Error("Serv.ReqTradingTask3:OnTaskEnd",
+						zap.Error(err))
+
+					return err
+				}
+			}
+		}
+	}
 }

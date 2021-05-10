@@ -912,3 +912,62 @@ func (db *SimTradingDB) Stop() {
 	db.ticker.Stop()
 	db.chanDone <- 0
 }
+
+// Upgrade2SimTradingDB2 - upgrade to SimTradfingDB2
+func (db *SimTradingDB) Upgrade2SimTradingDB2(ctx context.Context, params *tradingpb.SimTradingParams, db2 *SimTradingDB2) (bool, error) {
+	nparams, nbuf, nhash, err := rebuildSimTradingParams(params)
+	if err != nil {
+		tradingdb2utils.Warn("SimTradingDB.Upgrade2SimTradingDB2:rebuildSimTradingParams",
+			zap.Error(err))
+
+		return false, err
+	}
+
+	cache, err := db.getSimTradingNodes2(ctx, nparams, nhash, nbuf)
+	if err != nil {
+		tradingdb2utils.Warn("SimTradingDB.Upgrade2SimTradingDB2:getSimTradingNodes",
+			zap.Error(err))
+
+		return false, err
+	}
+
+	if cache == nil {
+		tradingdb2utils.Debug("SimTradingDB.Upgrade2SimTradingDB2:no cache",
+			tradingdb2utils.JSON("params", params))
+
+		return false, nil
+	}
+
+	for _, v := range cache.Nodes {
+		pnldata, err := db.getPNLData(ctx, v.Key)
+		if err != nil {
+			tradingdb2utils.Warn("SimTradingDB.Upgrade2SimTradingDB2:getPNLData",
+				zap.Error(err))
+
+			return false, err
+		}
+
+		err = db2.UpdSimTrading(ctx, v.Params, pnldata)
+		if err != nil {
+			tradingdb2utils.Warn("SimTradingDB.Upgrade2SimTradingDB2:UpdSimTrading",
+				zap.Error(err))
+
+			return false, err
+		}
+	}
+
+	key2 := makeSimTradingNodesDBKey2(params.Assets[0].Market, params.Assets[0].Code, params.StartTs, params.EndTs, nhash[:2])
+
+	db.mutexDB.Lock()
+	err = db.AnkaDB.Delete(ctx, simtradingDBName, key2)
+	db.mutexDB.Unlock()
+
+	if err != nil {
+		tradingdb2utils.Warn("SimTradingDB.Upgrade2SimTradingDB2:Delete",
+			zap.Error(err))
+
+		return false, err
+	}
+
+	return true, nil
+}

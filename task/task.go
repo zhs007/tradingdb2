@@ -10,8 +10,9 @@ type FuncOnTaskStart func(task *Task) error
 
 // Task - Task
 type Task struct {
-	Params  *tradingpb.SimTradingParams
-	PNL     *tradingpb.PNLData
-	lstFunc []FuncOnTaskEnd
-	StartTs int64
+	Params      *tradingpb.SimTradingParams
+	PNL         *tradingpb.PNLData
+	lstFunc     []FuncOnTaskEnd
+	StartTs     int64
+	TaskGroupID int
 }
