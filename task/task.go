@@ -11,7 +11,6 @@ type FuncOnTaskStart func(task *Task) error
 // Task - Task
 type Task struct {
 	Params      *tradingpb.SimTradingParams
-	Task        []byte
 	PNL         *tradingpb.PNLData
 	lstFunc     []FuncOnTaskEnd
 	StartTs     int64
