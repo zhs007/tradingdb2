@@ -612,33 +612,56 @@ func rebuildSimTradingParams(params *tradingpb.SimTradingParams) (*tradingpb.Sim
 	return np, buf, fmt.Sprintf("%x", bs), nil
 }
 
-func rebuildSimTradingParams2(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, []byte, error) {
+// func rebuildSimTradingParams2(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, []byte, error) {
+// 	nmsg := proto.Clone(params)
+// 	np, isok := nmsg.(*tradingpb.SimTradingParams)
+// 	if !isok {
+// 		tradingdb2utils.Warn("rebuildSimTradingParams2:Clone",
+// 			zap.Error(ErrInvalidSimTradingParams))
+
+// 		return nil, nil, ErrInvalidSimTradingParams
+// 	}
+
+// 	np.Title = ""
+
+// 	err := sortStrategies(np.Strategies)
+// 	if err != nil {
+// 		tradingdb2utils.Warn("rebuildSimTradingParams2:sortStrategys",
+// 			zap.Error(err))
+
+// 		return nil, nil, err
+// 	}
+
+// 	buf, err := proto.Marshal(np)
+// 	if err != nil {
+// 		tradingdb2utils.Warn("rebuildSimTradingParams2:Marshal",
+// 			zap.Error(err))
+
+// 		return nil, nil, err
+// 	}
+
+// 	return np, buf, nil
+// }
+
+func RebuildSimTradingParams3(params *tradingpb.SimTradingParams) (*tradingpb.SimTradingParams, error) {
 	nmsg := proto.Clone(params)
 	np, isok := nmsg.(*tradingpb.SimTradingParams)
 	if !isok {
-		tradingdb2utils.Warn("rebuildSimTradingParams2:Clone",
+		tradingdb2utils.Warn("rebuildSimTradingParams3:Clone",
 			zap.Error(ErrInvalidSimTradingParams))
 
-		return nil, nil, ErrInvalidSimTradingParams
+		return nil, ErrInvalidSimTradingParams
 	}
 
 	np.Title = ""
 
 	err := sortStrategies(np.Strategies)
 	if err != nil {
-		tradingdb2utils.Warn("rebuildSimTradingParams2:sortStrategys",
+		tradingdb2utils.Warn("rebuildSimTradingParams3:sortStrategys",
 			zap.Error(err))
 
-		return nil, nil, err
+		return nil, err
 	}
 
-	buf, err := proto.Marshal(np)
-	if err != nil {
-		tradingdb2utils.Warn("rebuildSimTradingParams2:Marshal",
-			zap.Error(err))
-
-		return nil, nil, err
-	}
-
-	return np, buf, nil
+	return np, nil
 }

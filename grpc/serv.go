@@ -830,7 +830,7 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 		return
 	}
 
-	params, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
+	nparams, err := serv.DB2.FixSimTradingParams(ctx, req.Params)
 	if err != nil {
 		tradingdb2utils.Error("Serv.simTrading:FixSimTradingParams",
 			zap.Error(err))
@@ -840,8 +840,18 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 		return
 	}
 
+	params2, err := tradingdb2.RebuildSimTradingParams3(nparams)
+	if err != nil {
+		tradingdb2utils.Error("Serv.simTrading3:RebuildSimTradingParams3",
+			zap.Error(err))
+
+		onEnd(req, nil, err, false)
+
+		return
+	}
+
 	if !req.IgnoreCache {
-		pnl, err := serv.SimTradingDB2.GetSimTrading(ctx, params)
+		pnl, err := serv.SimTradingDB2.GetSimTrading(ctx, params2)
 
 		if err != nil {
 			tradingdb2utils.Error("Serv.simTrading3:GetSimTrading",
@@ -865,7 +875,7 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 		}
 
 		//！！ 这里开始是兼容SimTradingDB的
-		isok, err := serv.DBSimTrading.Upgrade2SimTradingDB2(ctx, params, serv.SimTradingDB2)
+		isok, err := serv.DBSimTrading.Upgrade2SimTradingDB2(ctx, params2, serv.SimTradingDB2)
 		if err != nil {
 			tradingdb2utils.Error("Serv.simTrading3:Upgrade2SimTradingDB2",
 				zap.Error(err))
@@ -876,7 +886,7 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 		}
 
 		if isok {
-			pnl, err = serv.SimTradingDB2.GetSimTrading(ctx, params)
+			pnl, err = serv.SimTradingDB2.GetSimTrading(ctx, params2)
 			if err != nil {
 				tradingdb2utils.Error("Serv.simTrading3:GetSimTrading&Upgrade2SimTradingDB2",
 					zap.Error(err))
@@ -900,7 +910,7 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 		}
 	}
 
-	err = serv.tasksMgr.AddTask(taskGroupID, req.Params, func(task *tradingdb2task.Task) error {
+	err = serv.tasksMgr.AddTask(taskGroupID, params2, func(task *tradingdb2task.Task) error {
 		onEnd(req, &tradingpb.ReplySimTrading{
 			Pnl: []*tradingpb.PNLData{
 				task.PNL,
