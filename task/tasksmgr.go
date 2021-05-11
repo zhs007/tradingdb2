@@ -1,7 +1,7 @@
 package tradingdb2task
 
 import (
-	"bytes"
+	"encoding/hex"
 	"sync"
 	"time"
 
@@ -13,10 +13,10 @@ import (
 
 // TasksMgr - TasksMgr
 type TasksMgr struct {
-	mapTasks          map[interface{}]*Task
+	mapTasks          map[string]*Task
 	mutex             sync.Mutex
-	lstKeys           []interface{}
-	lstRunning        []interface{}
+	lstKeys           []string
+	lstRunning        []string
 	latestTaskGroupID int
 	mapTaskGroup      map[int]*TaskGroup
 }
@@ -24,7 +24,7 @@ type TasksMgr struct {
 // NewTasksMgr - new TasksMgr
 func NewTasksMgr() *TasksMgr {
 	return &TasksMgr{
-		mapTasks:          make(map[interface{}]*Task),
+		mapTasks:          make(map[string]*Task),
 		latestTaskGroupID: 0,
 		mapTaskGroup:      make(map[int]*TaskGroup),
 	}
@@ -40,7 +40,7 @@ func (mgr *TasksMgr) HasTask(params *tradingpb.SimTradingParams) bool {
 	}
 
 	mgr.mutex.Lock()
-	_, isok := mgr.mapTasks[buf]
+	_, isok := mgr.mapTasks[hex.EncodeToString(buf)]
 	mgr.mutex.Unlock()
 
 	return isok
@@ -55,34 +55,36 @@ func (mgr *TasksMgr) AddTask(taskGroupID int, params *tradingpb.SimTradingParams
 		return err
 	}
 
+	key := hex.EncodeToString(buf)
+
 	mgr.mutex.Lock()
 	defer mgr.mutex.Unlock()
 
 	if onEnd == nil {
-		_, isok := mgr.mapTasks[buf]
+		_, isok := mgr.mapTasks[key]
 		if !isok {
-			mgr.mapTasks[buf] = &Task{
+			mgr.mapTasks[key] = &Task{
 				Params:      params,
 				TaskGroupID: taskGroupID,
 			}
 
-			mgr.lstKeys = append(mgr.lstKeys, buf)
+			mgr.lstKeys = append(mgr.lstKeys, key)
 		}
 
 		return nil
 	}
 
-	task, isok := mgr.mapTasks[buf]
+	task, isok := mgr.mapTasks[key]
 	if isok {
 		task.lstFunc = append(task.lstFunc, onEnd)
 	} else {
-		mgr.mapTasks[buf] = &Task{
+		mgr.mapTasks[key] = &Task{
 			Params:      params,
 			lstFunc:     []FuncOnTaskEnd{onEnd},
 			TaskGroupID: taskGroupID,
 		}
 
-		mgr.lstKeys = append(mgr.lstKeys, buf)
+		mgr.lstKeys = append(mgr.lstKeys, key)
 	}
 
 	return nil
@@ -102,15 +104,17 @@ func (mgr *TasksMgr) AddTask(taskGroupID int, params *tradingpb.SimTradingParams
 // }
 
 func (mgr *TasksMgr) delRunning(buf []byte) {
-	for i, v := range mgr.lstRunning {
-		bv, isok := v.([]byte)
-		if isok {
-			if bytes.Equal(bv, buf) {
-				mgr.lstRunning = append(mgr.lstRunning[:i], mgr.lstRunning[i+1:]...)
+	key := hex.EncodeToString(buf)
 
-				return
-			}
+	for i, v := range mgr.lstRunning {
+		// bv, isok := v.([]byte)
+		// if isok {
+		if v == key {
+			mgr.lstRunning = append(mgr.lstRunning[:i], mgr.lstRunning[i+1:]...)
+
+			return
 		}
+		// }
 	}
 }
 
@@ -126,7 +130,9 @@ func (mgr *TasksMgr) OnTaskEnd(result *tradingpb.TradingTaskResult) error {
 	mgr.mutex.Lock()
 	defer mgr.mutex.Unlock()
 
-	task, isok := mgr.mapTasks[result.Task]
+	key := hex.EncodeToString(result.Task)
+
+	task, isok := mgr.mapTasks[key]
 	if isok {
 		task.PNL = result.Pnl
 
@@ -134,7 +140,7 @@ func (mgr *TasksMgr) OnTaskEnd(result *tradingpb.TradingTaskResult) error {
 			v(task)
 		}
 
-		delete(mgr.mapTasks, result.Task)
+		delete(mgr.mapTasks, key)
 		mgr.delRunning(result.Task)
 
 		return nil
@@ -151,12 +157,14 @@ func (mgr *TasksMgr) StartTask(onStart FuncOnTaskStart) error {
 	defer mgr.mutex.Unlock()
 
 	for len(mgr.lstKeys) > 0 {
-		buf := mgr.lstKeys[0]
+		key := mgr.lstKeys[0]
 		mgr.lstKeys = mgr.lstKeys[1:]
 
-		task, isok := mgr.mapTasks[buf]
+		// key := hex.EncodeToString(buf)
+
+		task, isok := mgr.mapTasks[key]
 		if isok {
-			mgr.lstRunning = append(mgr.lstRunning, buf)
+			mgr.lstRunning = append(mgr.lstRunning, key)
 
 			task.StartTs = time.Now().Unix()
 
