@@ -60,6 +60,11 @@ func (mgr *TasksMgr) AddTask(taskGroupID int, params *tradingpb.SimTradingParams
 	mgr.mutex.Lock()
 	defer mgr.mutex.Unlock()
 
+	tg, isok := mgr.mapTaskGroup[taskGroupID]
+	if isok {
+		tg.MaxTaskNums++
+	}
+
 	if onEnd == nil {
 		_, isok := mgr.mapTasks[key]
 		if !isok {
@@ -186,8 +191,9 @@ func (mgr *TasksMgr) NewTaskGroup() int {
 	mgr.latestTaskGroupID++
 
 	mgr.mapTaskGroup[mgr.latestTaskGroupID] = &TaskGroup{
-		TaskGroupID: mgr.latestTaskGroupID,
-		StartTs:     time.Now().Unix(),
+		TaskGroupID:  mgr.latestTaskGroupID,
+		StartTs:      time.Now().Unix(),
+		LastTaskNums: -1,
 	}
 
 	return mgr.latestTaskGroupID
@@ -201,6 +207,11 @@ func (mgr *TasksMgr) IsTaskGroupFinished(taskGroupID int) bool {
 		if v.TaskGroupID == taskGroupID {
 			return false
 		}
+	}
+
+	_, isok := mgr.mapTaskGroup[taskGroupID]
+	if isok {
+		delete(mgr.mapTaskGroup, taskGroupID)
 	}
 
 	return true
@@ -239,4 +250,44 @@ func (mgr *TasksMgr) WaitTaskGroupFinished(taskGroupID int) {
 			logts = ts
 		}
 	}
+}
+
+func (mgr *TasksMgr) GetTaskGroups() []TaskGroup {
+	arr := []TaskGroup{}
+
+	curts := time.Now().Unix()
+
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	for _, tg := range mgr.mapTaskGroup {
+		tg.RunningTime = curts - tg.StartTs
+		if tg.RunningTime <= 0 {
+			tg.RunningTime = 0
+			tg.StartTs = curts
+		}
+
+		tg.LastTaskNums = 0
+		for _, t := range mgr.mapTasks {
+			if t.TaskGroupID == tg.TaskGroupID {
+				tg.LastTaskNums++
+			}
+		}
+
+		if tg.MaxTaskNums <= tg.LastTaskNums {
+			tg.MaxTaskNums = tg.LastTaskNums
+		}
+
+		if tg.MaxTaskNums == tg.LastTaskNums || tg.RunningTime <= 0 {
+			tg.LastTime = -1
+		} else {
+			tg.LastTime = int64(tg.LastTaskNums*(tg.MaxTaskNums-tg.LastTaskNums)) / tg.RunningTime
+		}
+
+		if tg.LastTaskNums > 0 {
+			arr = append(arr, *tg)
+		}
+	}
+
+	return arr
 }
