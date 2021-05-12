@@ -25,7 +25,7 @@ type Serv struct {
 	DBSimTrading  *tradingdb2.SimTradingDB
 	SimTradingDB2 *tradingdb2.SimTradingDB2
 	MgrNodes      *Node2Mgr
-	tasksMgr      *tradingdb2task.TasksMgr
+	TasksMgr      *tradingdb2task.TasksMgr
 }
 
 // NewServ -
@@ -89,7 +89,7 @@ func NewServ(cfg *tradingdb2.Config) (*Serv, error) {
 		Cfg:           cfg,
 		MgrNodes:      mgrNodes,
 		SimTradingDB2: simTradingDB2,
-		tasksMgr:      tasksMgr,
+		TasksMgr:      tasksMgr,
 	}
 
 	tradingpb.RegisterTradingDB2Server(grpcServ, serv)
@@ -910,7 +910,7 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 		}
 	}
 
-	err = serv.tasksMgr.AddTask(taskGroupID, params2, func(task *tradingdb2task.Task) error {
+	err = serv.TasksMgr.AddTask(taskGroupID, params2, func(task *tradingdb2task.Task) error {
 		onEnd(req, &tradingpb.ReplySimTrading{
 			Pnl: []*tradingpb.PNLData{
 				task.PNL,
@@ -931,14 +931,14 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 	maxIgnoreNums := 0
 	var lstIgnore []*tradingpb.ReplySimTrading
 
-	curTaskGroupID := serv.tasksMgr.NewTaskGroup()
+	curTaskGroupID := serv.TasksMgr.NewTaskGroup()
 
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
 			tradingdb2utils.Debug("Serv.SimTrading3:EOF")
 
-			serv.tasksMgr.WaitTaskGroupFinished(curTaskGroupID)
+			serv.TasksMgr.WaitTaskGroupFinished(curTaskGroupID)
 
 			if len(lstIgnore) > minNums {
 				lstlast, lstlost := serv.procIgnoreReply(lstIgnore, minNums, maxIgnoreNums, true)
@@ -1075,7 +1075,7 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 			}
 
 			if in.Result == nil {
-				err = serv.tasksMgr.StartTask(func(task *tradingdb2task.Task) error {
+				err = serv.TasksMgr.StartTask(func(task *tradingdb2task.Task) error {
 					if task == nil {
 						stream.Send(&tradingpb.ReplyTradingTask{})
 					} else {
@@ -1093,7 +1093,7 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 					return err
 				}
 			} else {
-				err = serv.tasksMgr.OnTaskEnd(in.Result)
+				err = serv.TasksMgr.OnTaskEnd(in.Result)
 				if err != nil {
 					tradingdb2utils.Error("Serv.ReqTradingTask3:OnTaskEnd",
 						zap.Error(err))
