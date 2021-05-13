@@ -1089,31 +1089,7 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				return err
 			}
 
-			if in.Result == nil {
-				err = serv.TasksMgr.StartTask(func(task *tradingdb2task.Task) error {
-					if task == nil {
-						stream.Send(&tradingpb.ReplyTradingTask{})
-					} else {
-						stream.Send(&tradingpb.ReplyTradingTask{
-							Params: task.Params,
-						})
-					}
-
-					tasknums++
-
-					tradingdb2utils.Info("Serv.ReqTradingTask3:StartTask",
-						zap.Int("tasknums", tasknums),
-						zap.Int("recvresultnums", recvresultnums))
-
-					return nil
-				})
-				if err != nil {
-					tradingdb2utils.Error("Serv.ReqTradingTask3:StartTask",
-						zap.Error(err))
-
-					return err
-				}
-			} else {
+			if in.Result != nil {
 				err = serv.TasksMgr.OnTaskEnd(in.Result)
 				if err != nil {
 					tradingdb2utils.Error("Serv.ReqTradingTask3:OnTaskEnd",
@@ -1127,6 +1103,30 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				tradingdb2utils.Info("Serv.ReqTradingTask3:OnTaskEnd",
 					zap.Int("tasknums", tasknums),
 					zap.Int("recvresultnums", recvresultnums))
+			}
+
+			err = serv.TasksMgr.StartTask(func(task *tradingdb2task.Task) error {
+				if task == nil {
+					stream.Send(&tradingpb.ReplyTradingTask{})
+				} else {
+					stream.Send(&tradingpb.ReplyTradingTask{
+						Params: task.Params,
+					})
+				}
+
+				tasknums++
+
+				tradingdb2utils.Info("Serv.ReqTradingTask3:StartTask",
+					zap.Int("tasknums", tasknums),
+					zap.Int("recvresultnums", recvresultnums))
+
+				return nil
+			})
+			if err != nil {
+				tradingdb2utils.Error("Serv.ReqTradingTask3:StartTask",
+					zap.Error(err))
+
+				return err
 			}
 		}
 	}
