@@ -1074,10 +1074,10 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 		}
 
 		if in != nil {
-			tradingdb2utils.Info("Serv.ReqTradingTask3:Recv",
-				zap.Int("tasknums", tasknums),
-				zap.Int("recvresultnums", recvresultnums),
-				tradingdb2utils.JSON("msg", in))
+			// tradingdb2utils.Info("Serv.ReqTradingTask3:Recv",
+			// 	zap.Int("tasknums", tasknums),
+			// 	zap.Int("recvresultnums", recvresultnums),
+			// 	tradingdb2utils.JSON("msg", in))
 
 			err := serv.checkBasicRequest(in.BasicRequest)
 			if err != nil {
