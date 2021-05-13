@@ -1050,14 +1050,24 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 
 // ReqTradingTask3 - request trading task
 func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
+	tasknums := 0
+	recvresultnums := 0
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
+			if tasknums > 0 {
+				tradingdb2utils.Info("Serv.ReqTradingTask3:Recv:EOF",
+					zap.Int("tasknums", tasknums),
+					zap.Int("recvresultnums", recvresultnums))
+			}
+
 			return nil
 		}
 
 		if err != nil {
-			tradingdb2utils.Error("Serv.ReqTradingTask3",
+			tradingdb2utils.Error("Serv.ReqTradingTask3:Recv",
+				zap.Int("tasknums", tasknums),
+				zap.Int("recvresultnums", recvresultnums),
 				zap.Error(err))
 
 			return err
@@ -1084,6 +1094,12 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 						})
 					}
 
+					tasknums++
+
+					tradingdb2utils.Info("Serv.ReqTradingTask3:StartTask",
+						zap.Int("tasknums", tasknums),
+						zap.Int("recvresultnums", recvresultnums))
+
 					return nil
 				})
 				if err != nil {
@@ -1100,6 +1116,12 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 
 					return err
 				}
+
+				recvresultnums++
+
+				tradingdb2utils.Info("Serv.ReqTradingTask3:OnTaskEnd",
+					zap.Int("tasknums", tasknums),
+					zap.Int("recvresultnums", recvresultnums))
 			}
 		}
 	}
