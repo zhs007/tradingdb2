@@ -873,40 +873,40 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 			return
 		}
 
-		//！！ 这里开始是兼容SimTradingDB的
-		isok, err := serv.DBSimTrading.Upgrade2SimTradingDB2(ctx, params2, serv.SimTradingDB2)
-		if err != nil {
-			tradingdb2utils.Error("Serv.simTrading3:Upgrade2SimTradingDB2",
-				zap.Error(err))
+		// //！！ 这里开始是兼容SimTradingDB的
+		// isok, err := serv.DBSimTrading.Upgrade2SimTradingDB2(ctx, params2, serv.SimTradingDB2)
+		// if err != nil {
+		// 	tradingdb2utils.Error("Serv.simTrading3:Upgrade2SimTradingDB2",
+		// 		zap.Error(err))
 
-			onEnd(req, nil, err, false)
+		// 	onEnd(req, nil, err, false)
 
-			return
-		}
+		// 	return
+		// }
 
-		if isok {
-			pnl, err = serv.SimTradingDB2.GetSimTrading(ctx, params2)
-			if err != nil {
-				tradingdb2utils.Error("Serv.simTrading3:GetSimTrading&Upgrade2SimTradingDB2",
-					zap.Error(err))
+		// if isok {
+		// 	pnl, err = serv.SimTradingDB2.GetSimTrading(ctx, params2)
+		// 	if err != nil {
+		// 		tradingdb2utils.Error("Serv.simTrading3:GetSimTrading&Upgrade2SimTradingDB2",
+		// 			zap.Error(err))
 
-				onEnd(req, nil, err, false)
+		// 		onEnd(req, nil, err, false)
 
-				return
-			}
+		// 		return
+		// 	}
 
-			if pnl != nil {
-				tradingdb2utils.Debug("Serv.simTrading:Cached2")
+		// 	if pnl != nil {
+		// 		tradingdb2utils.Debug("Serv.simTrading:Cached2")
 
-				onEnd(req, &tradingpb.ReplySimTrading{
-					Pnl: []*tradingpb.PNLData{
-						pnl,
-					},
-				}, err, true)
+		// 		onEnd(req, &tradingpb.ReplySimTrading{
+		// 			Pnl: []*tradingpb.PNLData{
+		// 				pnl,
+		// 			},
+		// 		}, err, true)
 
-				return
-			}
-		}
+		// 		return
+		// 	}
+		// }
 	}
 
 	err = serv.TasksMgr.AddTask(taskGroupID, params2, func(task *tradingdb2task.Task) error {
