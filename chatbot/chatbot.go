@@ -47,6 +47,7 @@ func startChatBot(ctx context.Context, chatbotcfg *chatbot.Config, trdb2serv *tr
 	RegisterCmdExpAllData(trdb2serv)
 	RegistercmdExpSymbols(trdb2serv)
 	RegisterCmdShowTasks(trdb2serv)
+	RegisterCmdHistoryTasks(trdb2serv)
 
 	chatbotbase.SetLogger(tradingdb2utils.GetLogger())
 

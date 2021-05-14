@@ -19,6 +19,7 @@ type TasksMgr struct {
 	lstRunning        []string
 	latestTaskGroupID int
 	mapTaskGroup      map[int]*TaskGroup
+	lstHistory        []*TaskGroup
 }
 
 // NewTasksMgr - new TasksMgr
@@ -209,8 +210,10 @@ func (mgr *TasksMgr) IsTaskGroupFinished(taskGroupID int) bool {
 		}
 	}
 
-	_, isok := mgr.mapTaskGroup[taskGroupID]
+	tg, isok := mgr.mapTaskGroup[taskGroupID]
 	if isok {
+		mgr.addHistory(tg)
+
 		delete(mgr.mapTaskGroup, taskGroupID)
 	}
 
@@ -288,6 +291,26 @@ func (mgr *TasksMgr) GetTaskGroups() []TaskGroup {
 			arr = append(arr, *tg)
 		}
 	}
+
+	return arr
+}
+
+func (mgr *TasksMgr) addHistory(tg *TaskGroup) {
+	mgr.lstHistory = append(mgr.lstHistory, tg)
+}
+
+func (mgr *TasksMgr) RecvHistory() []TaskGroup {
+	if len(mgr.lstHistory) == 0 {
+		return nil
+	}
+
+	arr := []TaskGroup{}
+
+	for _, v := range mgr.lstHistory {
+		arr = append(arr, *v)
+	}
+
+	mgr.lstHistory = nil
 
 	return arr
 }
