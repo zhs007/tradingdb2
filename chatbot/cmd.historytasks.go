@@ -13,15 +13,15 @@ import (
 )
 
 // nameCmd - name for command
-const nameShowTasks = "showtasks"
+const nameHistoryTasks = "historytasks"
 
-// cmdShowTasks - showtasks help
-type cmdShowTasks struct {
+// cmdHistoryTasks - historytasks help
+type cmdHistoryTasks struct {
 	serv *tradingdb2grpc.Serv
 }
 
 // RunCommand - run command
-func (cmd *cmdShowTasks) RunCommand(ctx context.Context, serv *chatbot.Serv, params interface{},
+func (cmd *cmdHistoryTasks) RunCommand(ctx context.Context, serv *chatbot.Serv, params interface{},
 	chat *chatbotpb.ChatMsg, ui *chatbotpb.UserInfo, ud proto.Message,
 	scs chatbotpb.ChatBotService_SendChatServer) (bool, []*chatbotpb.ChatMsg, error) {
 
@@ -36,11 +36,11 @@ func (cmd *cmdShowTasks) RunCommand(ctx context.Context, serv *chatbot.Serv, par
 	var lst []*chatbotpb.ChatMsg
 	str := "There are no task."
 
-	arr := cmd.serv.TasksMgr.GetTaskGroups()
+	arr := cmd.serv.TasksMgr.RecvHistory()
 	if len(arr) > 0 {
 		cs, err := chatbotbase.JSONFormat(arr)
 		if err != nil {
-			tradingdb2utils.Error("cmdShowTasks.JSONFormat",
+			tradingdb2utils.Error("cmdHistoryTasks.JSONFormat",
 				tradingdb2utils.JSON("arr", arr),
 				zap.Error(err))
 
@@ -61,23 +61,23 @@ func (cmd *cmdShowTasks) RunCommand(ctx context.Context, serv *chatbot.Serv, par
 }
 
 // ParseCommandLine - parse command line
-func (cmd *cmdShowTasks) ParseCommandLine(cmdline []string, chat *chatbotpb.ChatMsg) (interface{}, error) {
-	tradingdb2utils.Info("cmdShowTasks.ParseCommandLine")
+func (cmd *cmdHistoryTasks) ParseCommandLine(cmdline []string, chat *chatbotpb.ChatMsg) (interface{}, error) {
+	tradingdb2utils.Info("cmdHistoryTasks.ParseCommandLine")
 
 	return nil, nil
 }
 
 // OnMessage - get message
-func (cmd *cmdShowTasks) OnMessage(ctx context.Context, serv *chatbot.Serv, chat *chatbotpb.ChatMsg,
+func (cmd *cmdHistoryTasks) OnMessage(ctx context.Context, serv *chatbot.Serv, chat *chatbotpb.ChatMsg,
 	ui *chatbotpb.UserInfo, ud proto.Message,
 	scs chatbotpb.ChatBotService_SendChatServer) (bool, []*chatbotpb.ChatMsg, error) {
 
 	return true, nil, chatbotbase.ErrCmdItsNotMine
 }
 
-// RegisterCmdShowTasks - register showtasks in command
-func RegisterCmdShowTasks(serv *tradingdb2grpc.Serv) {
-	chatbot.RegisterCommand(nameShowTasks, &cmdShowTasks{
+// RegisterCmdHistoryTasks - register historytasks in command
+func RegisterCmdHistoryTasks(serv *tradingdb2grpc.Serv) {
+	chatbot.RegisterCommand(nameHistoryTasks, &cmdHistoryTasks{
 		serv: serv,
 	})
 }
