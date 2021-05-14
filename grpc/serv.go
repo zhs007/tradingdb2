@@ -1112,13 +1112,13 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 					stream.Send(&tradingpb.ReplyTradingTask{
 						Params: task.Params,
 					})
+
+					tasknums++
+
+					tradingdb2utils.Info("Serv.ReqTradingTask3:StartTask",
+						zap.Int("tasknums", tasknums),
+						zap.Int("recvresultnums", recvresultnums))
 				}
-
-				tasknums++
-
-				tradingdb2utils.Info("Serv.ReqTradingTask3:StartTask",
-					zap.Int("tasknums", tasknums),
-					zap.Int("recvresultnums", recvresultnums))
 
 				return nil
 			})
