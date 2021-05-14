@@ -986,7 +986,6 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 			}
 
 			// 这个接口不是阻塞的，错误没法直接传递到外面来
-
 			serv.simTrading3(stream.Context(), curTaskGroupID, in,
 				func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool) {
 					if err != nil {
