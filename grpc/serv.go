@@ -852,7 +852,6 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 
 	if !req.IgnoreCache {
 		pnl, err := serv.SimTradingDB2.GetSimTrading(ctx, params2)
-
 		if err != nil {
 			tradingdb2utils.Error("Serv.simTrading3:GetSimTrading",
 				zap.Error(err))
@@ -863,7 +862,7 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 		}
 
 		if pnl != nil {
-			// tradingdb2utils.Debug("Serv.simTrading:Cached")
+			tradingdb2utils.Debug("Serv.simTrading3:Cached1")
 
 			onEnd(req, &tradingpb.ReplySimTrading{
 				Pnl: []*tradingpb.PNLData{
@@ -897,7 +896,7 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 			}
 
 			if pnl != nil {
-				// tradingdb2utils.Debug("Serv.simTrading:Cached")
+				tradingdb2utils.Debug("Serv.simTrading:Cached2")
 
 				onEnd(req, &tradingpb.ReplySimTrading{
 					Pnl: []*tradingpb.PNLData{
