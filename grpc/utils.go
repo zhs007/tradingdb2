@@ -1,7 +1,12 @@
 package tradingdb2grpc
 
 import (
+	"context"
+
 	tradingpb "github.com/zhs007/tradingdb2/tradingpb"
+	tradingdb2utils "github.com/zhs007/tradingdb2/utils"
+
+	"google.golang.org/grpc/peer"
 )
 
 // GenCalcBaseline - generator SimTradingParams for baseline
@@ -40,4 +45,15 @@ func setIgnoreReplySimTrading(reply *tradingpb.ReplySimTrading) {
 	for _, v := range reply.Pnl {
 		v.Total.Values = nil
 	}
+}
+
+func GetPeerAddr(ctx context.Context) string {
+	pr, ok := peer.FromContext(ctx)
+	if !ok {
+		tradingdb2utils.Warn("GetPeerAddr:FromContext")
+
+		return ""
+	}
+
+	return pr.Addr.String()
 }

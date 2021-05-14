@@ -986,7 +986,6 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 			}
 
 			// 这个接口不是阻塞的，错误没法直接传递到外面来
-
 			serv.simTrading3(stream.Context(), curTaskGroupID, in,
 				func(req *tradingpb.RequestSimTrading, reply *tradingpb.ReplySimTrading, err error, inCache bool) {
 					if err != nil {
@@ -1052,13 +1051,15 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
 	tasknums := 0
 	recvresultnums := 0
+	addr := GetPeerAddr(stream.Context())
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
 			if tasknums > 0 {
 				tradingdb2utils.Info("Serv.ReqTradingTask3:Recv:EOF",
 					zap.Int("tasknums", tasknums),
-					zap.Int("recvresultnums", recvresultnums))
+					zap.Int("recvresultnums", recvresultnums),
+					zap.String("addr", addr))
 			}
 
 			return nil
@@ -1068,6 +1069,7 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 			tradingdb2utils.Error("Serv.ReqTradingTask3:Recv",
 				zap.Int("tasknums", tasknums),
 				zap.Int("recvresultnums", recvresultnums),
+				zap.String("addr", addr),
 				zap.Error(err))
 
 			return err
@@ -1084,6 +1086,7 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				tradingdb2utils.Error("Serv.ReqTradingTask3:checkToken",
 					zap.String("token", in.BasicRequest.Token),
 					zap.Strings("tokens", serv.Cfg.Tokens),
+					zap.String("addr", addr),
 					zap.Error(err))
 
 				return err
@@ -1093,6 +1096,7 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				err = serv.TasksMgr.OnTaskEnd(in.Result)
 				if err != nil {
 					tradingdb2utils.Error("Serv.ReqTradingTask3:OnTaskEnd",
+						zap.String("addr", addr),
 						zap.Error(err))
 
 					return err
@@ -1102,7 +1106,8 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 
 				tradingdb2utils.Info("Serv.ReqTradingTask3:OnTaskEnd",
 					zap.Int("tasknums", tasknums),
-					zap.Int("recvresultnums", recvresultnums))
+					zap.Int("recvresultnums", recvresultnums),
+					zap.String("addr", addr))
 			}
 
 			err = serv.TasksMgr.StartTask(func(task *tradingdb2task.Task) error {
@@ -1117,13 +1122,15 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 
 					tradingdb2utils.Info("Serv.ReqTradingTask3:StartTask",
 						zap.Int("tasknums", tasknums),
-						zap.Int("recvresultnums", recvresultnums))
+						zap.Int("recvresultnums", recvresultnums),
+						zap.String("addr", addr))
 				}
 
 				return nil
 			})
 			if err != nil {
 				tradingdb2utils.Error("Serv.ReqTradingTask3:StartTask",
+					zap.String("addr", addr),
 					zap.Error(err))
 
 				return err
