@@ -1000,8 +1000,16 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 							reply.Pnl[0].Title = req.Params.Title
 
 							if !inCache {
+								params2, err := tradingdb2.RebuildSimTradingParams3(req.Params)
+								if err != nil {
+									tradingdb2utils.Error("Serv.SimTrading3:onEnd:RebuildSimTradingParams3",
+										zap.Error(err))
+
+									return
+								}
+
 								// 如果不是incache，才需要更新缓存
-								err := serv.SimTradingDB2.UpdSimTrading(stream.Context(), req.Params, reply.Pnl[0])
+								err = serv.SimTradingDB2.UpdSimTrading(stream.Context(), params2, reply.Pnl[0])
 								if err != nil {
 									tradingdb2utils.Error("Serv.SimTrading3:UpdSimTrading",
 										zap.Error(err))
