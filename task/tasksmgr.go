@@ -237,6 +237,11 @@ func (mgr *TasksMgr) LogTaskGroup(taskGroupID int, str string) {
 func (mgr *TasksMgr) WaitTaskGroupFinished(taskGroupID int) {
 	logts := time.Now().Unix()
 
+	tg, isok := mgr.mapTaskGroup[taskGroupID]
+	if isok {
+		tg.IsRecvEnd = true
+	}
+
 	mgr.LogTaskGroup(taskGroupID, "TasksMgr.WaitTaskGroupFinished")
 
 	for {
@@ -287,6 +292,9 @@ func (mgr *TasksMgr) GetTaskGroups() []TaskGroup {
 			tg.LastTime = int64(tg.LastTaskNums*(tg.MaxTaskNums-tg.LastTaskNums)) / tg.RunningTime
 		}
 
+		tg.RunningTimeStr = time.Duration(tg.RunningTime).String()
+		tg.LastTimeStr = time.Duration(tg.LastTime).String()
+
 		if tg.LastTaskNums > 0 {
 			arr = append(arr, *tg)
 		}
@@ -296,6 +304,13 @@ func (mgr *TasksMgr) GetTaskGroups() []TaskGroup {
 }
 
 func (mgr *TasksMgr) addHistory(tg *TaskGroup) {
+	curts := time.Now().Unix()
+
+	tg.RunningTime = curts - tg.StartTs
+	tg.RunningTimeStr = time.Duration(tg.RunningTime).String()
+	tg.LastTime = 0
+	tg.LastTimeStr = ""
+
 	mgr.lstHistory = append(mgr.lstHistory, tg)
 }
 
