@@ -310,6 +310,7 @@ func (mgr *TasksMgr) addHistory(tg *TaskGroup) {
 	tg.RunningTimeStr = time.Duration(tg.RunningTime * int64(time.Second)).String()
 	tg.LastTime = 0
 	tg.LastTimeStr = ""
+	tg.LastTaskNums = 0
 
 	mgr.lstHistory = append(mgr.lstHistory, tg)
 }
@@ -322,7 +323,9 @@ func (mgr *TasksMgr) RecvHistory() []TaskGroup {
 	arr := []TaskGroup{}
 
 	for _, v := range mgr.lstHistory {
-		arr = append(arr, *v)
+		if v.LastTaskNums >= 0 {
+			arr = append(arr, *v)
+		}
 	}
 
 	mgr.lstHistory = nil
