@@ -230,7 +230,7 @@ func (mgr *TasksMgr) LogTaskGroup(taskGroupID int, str string) {
 	if isok {
 		tradingdb2utils.Info(str,
 			zap.Int("taskGroupID", taskGroupID),
-			zap.Duration("Running", time.Duration(logts-tg.StartTs)))
+			zap.Duration("Running", time.Duration((logts-tg.StartTs)*int64(time.Second))))
 	}
 }
 
@@ -292,8 +292,8 @@ func (mgr *TasksMgr) GetTaskGroups() []TaskGroup {
 			tg.LastTime = int64(tg.LastTaskNums*(tg.MaxTaskNums-tg.LastTaskNums)) / tg.RunningTime
 		}
 
-		tg.RunningTimeStr = time.Duration(tg.RunningTime).String()
-		tg.LastTimeStr = time.Duration(tg.LastTime).String()
+		tg.RunningTimeStr = time.Duration(tg.RunningTime * int64(time.Second)).String()
+		tg.LastTimeStr = time.Duration(tg.LastTime * int64(time.Second)).String()
 
 		if tg.LastTaskNums > 0 {
 			arr = append(arr, *tg)
@@ -307,9 +307,10 @@ func (mgr *TasksMgr) addHistory(tg *TaskGroup) {
 	curts := time.Now().Unix()
 
 	tg.RunningTime = curts - tg.StartTs
-	tg.RunningTimeStr = time.Duration(tg.RunningTime).String()
+	tg.RunningTimeStr = time.Duration(tg.RunningTime * int64(time.Second)).String()
 	tg.LastTime = 0
 	tg.LastTimeStr = ""
+	tg.LastTaskNums = 0
 
 	mgr.lstHistory = append(mgr.lstHistory, tg)
 }
@@ -322,7 +323,9 @@ func (mgr *TasksMgr) RecvHistory() []TaskGroup {
 	arr := []TaskGroup{}
 
 	for _, v := range mgr.lstHistory {
-		arr = append(arr, *v)
+		if v.LastTaskNums >= 0 {
+			arr = append(arr, *v)
+		}
 	}
 
 	mgr.lstHistory = nil
