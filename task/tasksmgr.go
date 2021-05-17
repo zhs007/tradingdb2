@@ -323,7 +323,7 @@ func (mgr *TasksMgr) RecvHistory() []TaskGroup {
 	arr := []TaskGroup{}
 
 	for _, v := range mgr.lstHistory {
-		if v.LastTaskNums >= 0 {
+		if v.MaxTaskNums > 0 {
 			arr = append(arr, *v)
 		}
 	}
