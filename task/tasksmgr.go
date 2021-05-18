@@ -297,14 +297,15 @@ func (mgr *TasksMgr) GetTaskGroups() []TaskGroup {
 			tg.MaxTaskNums = tg.LastTaskNums
 		}
 
+		tg.RunningTimeStr = time.Duration(tg.RunningTime * int64(time.Second)).String()
+
 		if tg.MaxTaskNums == tg.LastTaskNums || tg.RunningTime <= 0 {
 			tg.LastTime = -1
+			tg.LastTimeStr = "Please wait a moment."
 		} else {
-			tg.LastTime = int64(tg.LastTaskNums*(tg.MaxTaskNums-tg.LastTaskNums)) / tg.RunningTime
+			tg.LastTime = int64(tg.LastTaskNums) * tg.RunningTime / int64(tg.MaxTaskNums-tg.LastTaskNums)
+			tg.LastTimeStr = time.Duration(tg.LastTime * int64(time.Second)).String()
 		}
-
-		tg.RunningTimeStr = time.Duration(tg.RunningTime * int64(time.Second)).String()
-		tg.LastTimeStr = time.Duration(tg.LastTime * int64(time.Second)).String()
 
 		if tg.LastTaskNums > 0 {
 			arr = append(arr, *tg)
