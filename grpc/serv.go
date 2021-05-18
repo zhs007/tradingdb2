@@ -1106,10 +1106,12 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 						zap.String("addr", addr),
 						zap.Error(err))
 
-					return err
+					if err != tradingdb2task.ErrTaskFail {
+						return err
+					}
+				} else {
+					recvresultnums++
 				}
-
-				recvresultnums++
 
 				tradingdb2utils.Info("Serv.ReqTradingTask3:OnTaskEnd",
 					zap.Int("tasknums", tasknums),

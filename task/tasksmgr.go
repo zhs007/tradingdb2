@@ -109,8 +109,8 @@ func (mgr *TasksMgr) AddTask(taskGroupID int, params *tradingpb.SimTradingParams
 // 	}
 // }
 
-func (mgr *TasksMgr) delRunning(buf []byte) {
-	key := hex.EncodeToString(buf)
+func (mgr *TasksMgr) delRunning(key string) {
+	// key := hex.EncodeToString(buf)
 
 	for i, v := range mgr.lstRunning {
 		// bv, isok := v.([]byte)
@@ -138,6 +138,17 @@ func (mgr *TasksMgr) OnTaskEnd(result *tradingpb.TradingTaskResult) error {
 
 	key := hex.EncodeToString(result.Task)
 
+	if result.Err != "" {
+		tradingdb2utils.Warn("TasksMgr.OnTaskEnd:Result",
+			zap.String("Error", result.Err))
+
+		// 重新加回队列
+		mgr.delRunning(key)
+		mgr.lstKeys = append(mgr.lstKeys, key)
+
+		return ErrTaskFail
+	}
+
 	task, isok := mgr.mapTasks[key]
 	if isok {
 		task.PNL = result.Pnl
@@ -147,7 +158,7 @@ func (mgr *TasksMgr) OnTaskEnd(result *tradingpb.TradingTaskResult) error {
 		}
 
 		delete(mgr.mapTasks, key)
-		mgr.delRunning(result.Task)
+		mgr.delRunning(key)
 
 		return nil
 	}
@@ -329,6 +340,21 @@ func (mgr *TasksMgr) RecvHistory() []TaskGroup {
 	}
 
 	mgr.lstHistory = nil
+
+	return arr
+}
+
+func (mgr *TasksMgr) GetLastTasks(taskGroupID int) []*tradingpb.SimTradingParams {
+	arr := []*tradingpb.SimTradingParams{}
+
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	for _, v := range mgr.mapTasks {
+		if v.TaskGroupID == taskGroupID {
+			arr = append(arr, v.Params)
+		}
+	}
 
 	return arr
 }
