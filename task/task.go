@@ -16,3 +16,9 @@ type Task struct {
 	StartTs     int64
 	TaskGroupID int
 }
+
+// ShowTaskObj - ShowTaskObj
+type ShowTaskObj struct {
+	Params *tradingpb.SimTradingParams `json:"params"`
+	Key    string                      `json:"key"`
+}

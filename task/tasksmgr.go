@@ -122,6 +122,10 @@ func (mgr *TasksMgr) delRunning(key string) {
 		}
 		// }
 	}
+
+	tradingdb2utils.Warn("TasksMgr.delRunning",
+		zap.String("key", key),
+		zap.Error(ErrInvalidTaskKey))
 }
 
 func (mgr *TasksMgr) OnTaskEnd(result *tradingpb.TradingTaskResult) error {
@@ -188,6 +192,10 @@ func (mgr *TasksMgr) StartTask(onStart FuncOnTaskStart) error {
 			onStart(task)
 
 			return nil
+		} else {
+			tradingdb2utils.Warn("TasksMgr.StartTask",
+				zap.String("key", key),
+				zap.Error(ErrInvalidTaskKey))
 		}
 	}
 
@@ -345,15 +353,18 @@ func (mgr *TasksMgr) RecvHistory() []TaskGroup {
 	return arr
 }
 
-func (mgr *TasksMgr) GetLastTasks(taskGroupID int) []*tradingpb.SimTradingParams {
-	arr := []*tradingpb.SimTradingParams{}
+func (mgr *TasksMgr) GetLastTasks(taskGroupID int) []ShowTaskObj {
+	arr := []ShowTaskObj{}
 
 	mgr.mutex.Lock()
 	defer mgr.mutex.Unlock()
 
-	for _, v := range mgr.mapTasks {
+	for k, v := range mgr.mapTasks {
 		if v.TaskGroupID == taskGroupID {
-			arr = append(arr, v.Params)
+			arr = append(arr, ShowTaskObj{
+				Params: v.Params,
+				Key:    k,
+			})
 		}
 	}
 
