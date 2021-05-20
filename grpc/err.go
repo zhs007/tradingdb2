@@ -25,4 +25,7 @@ var (
 
 	// ErrInvalidParamsTs - Invalid timestamp in params
 	ErrInvalidParamsTs = errors.New("invalid timestamp in params")
+
+	// ErrTimeOut - Timeout
+	ErrTimeOut = errors.New("Timeout")
 )

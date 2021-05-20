@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sort"
+	"time"
 
 	tradingdb2 "github.com/zhs007/tradingdb2"
 	tradingdb2task "github.com/zhs007/tradingdb2/task"
@@ -1054,8 +1055,8 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 	}
 }
 
-// ReqTradingTask3 - request trading task
-func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
+// reqTradingTask3 - request trading task
+func (serv *Serv) reqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server, taskchan chan int, retchan chan reqTasks3Result) {
 	tasknums := 0
 	recvresultnums := 0
 	addr := GetPeerAddr(stream.Context())
@@ -1063,57 +1064,75 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 		in, err := stream.Recv()
 		if err == io.EOF {
 			if tasknums > 0 {
-				tradingdb2utils.Info("Serv.ReqTradingTask3:Recv:EOF",
+				tradingdb2utils.Info("Serv.reqTradingTask3:Recv:EOF",
 					zap.Int("tasknums", tasknums),
 					zap.Int("recvresultnums", recvresultnums),
 					zap.String("addr", addr))
 			}
 
-			return nil
+			retchan <- reqTasks3Result{
+				isEnd: true,
+			}
+
+			return
 		}
 
 		if err != nil {
-			tradingdb2utils.Error("Serv.ReqTradingTask3:Recv",
+			tradingdb2utils.Error("Serv.reqTradingTask3:Recv",
 				zap.Int("tasknums", tasknums),
 				zap.Int("recvresultnums", recvresultnums),
 				zap.String("addr", addr),
 				zap.Error(err))
 
-			return err
+			retchan <- reqTasks3Result{
+				err: err,
+			}
+
+			return
 		}
 
 		if in != nil {
-			// tradingdb2utils.Info("Serv.ReqTradingTask3:Recv",
+			// tradingdb2utils.Info("Serv.reqTradingTask3:Recv",
 			// 	zap.Int("tasknums", tasknums),
 			// 	zap.Int("recvresultnums", recvresultnums),
 			// 	tradingdb2utils.JSON("msg", in))
 
 			err := serv.checkBasicRequest(in.BasicRequest)
 			if err != nil {
-				tradingdb2utils.Error("Serv.ReqTradingTask3:checkToken",
+				tradingdb2utils.Error("Serv.reqTradingTask3:checkToken",
 					zap.String("token", in.BasicRequest.Token),
 					zap.Strings("tokens", serv.Cfg.Tokens),
 					zap.String("addr", addr),
 					zap.Error(err))
 
-				return err
+				retchan <- reqTasks3Result{
+					err: err,
+				}
+
+				return
 			}
 
 			if in.Result != nil {
+				taskchan <- 2
+
 				err = serv.TasksMgr.OnTaskEnd(in.Result)
 				if err != nil {
-					tradingdb2utils.Error("Serv.ReqTradingTask3:OnTaskEnd",
+					tradingdb2utils.Error("Serv.reqTradingTask3:OnTaskEnd",
 						zap.String("addr", addr),
 						zap.Error(err))
 
 					if err != tradingdb2task.ErrTaskFail {
-						return err
+						retchan <- reqTasks3Result{
+							err: err,
+						}
+
+						return
 					}
 				} else {
 					recvresultnums++
 				}
 
-				tradingdb2utils.Info("Serv.ReqTradingTask3:OnTaskEnd",
+				tradingdb2utils.Info("Serv.reqTradingTask3:OnTaskEnd",
 					zap.Int("tasknums", tasknums),
 					zap.Int("recvresultnums", recvresultnums),
 					zap.String("addr", addr))
@@ -1123,13 +1142,15 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				if task == nil {
 					stream.Send(&tradingpb.ReplyTradingTask{})
 				} else {
+					taskchan <- 1
+
 					stream.Send(&tradingpb.ReplyTradingTask{
 						Params: task.Params,
 					})
 
 					tasknums++
 
-					tradingdb2utils.Info("Serv.ReqTradingTask3:StartTask",
+					tradingdb2utils.Info("Serv.reqTradingTask3:StartTask",
 						zap.Int("tasknums", tasknums),
 						zap.Int("recvresultnums", recvresultnums),
 						zap.String("addr", addr))
@@ -1138,12 +1159,211 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				return nil
 			})
 			if err != nil {
-				tradingdb2utils.Error("Serv.ReqTradingTask3:StartTask",
+				tradingdb2utils.Error("Serv.reqTradingTask3:StartTask",
 					zap.String("addr", addr),
 					zap.Error(err))
 
-				return err
+				retchan <- reqTasks3Result{
+					err: err,
+				}
+
+				return
 			}
 		}
 	}
+}
+
+// reqTradingTask3TomeOut - request trading task
+func (serv *Serv) reqTradingTask3TomeOut(stream tradingpb.TradingDB2_ReqTradingTask3Server, taskchan chan int, retchan chan reqTasks3Result) {
+	curTaskState := 0
+	ct := time.Now().Unix()
+	for {
+		select {
+		case ts := <-taskchan:
+			if ts == 1 {
+				if curTaskState != 0 {
+					tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
+						zap.Int("ts", ts),
+						zap.Int("curTaskState", curTaskState))
+				}
+
+				curTaskState = 1
+				ct = time.Now().Unix()
+			} else if ts == 2 {
+				if curTaskState != 1 {
+					tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
+						zap.Int("ts", ts),
+						zap.Int("curTaskState", curTaskState))
+				}
+
+				curTaskState = 2
+			} else if ts == 3 {
+				tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
+					zap.Int("ts", ts),
+					zap.Int("curTaskState", curTaskState))
+
+				return
+			} else {
+				tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
+					zap.Int("ts", ts),
+					zap.Int("curTaskState", curTaskState))
+			}
+		default:
+			time.Sleep(time.Second)
+
+			if curTaskState == 1 {
+				if time.Now().Unix()-ct >= ReqTradingTask3TimeOut {
+					retchan <- reqTasks3Result{
+						err: ErrTimeOut,
+					}
+
+					return
+				}
+			}
+		}
+	}
+}
+
+// ReqTradingTask3 - request trading task
+func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
+	taskchan := make(chan int, 16)
+
+	retchan := make(chan reqTasks3Result, 16)
+	go serv.reqTradingTask3(stream, taskchan, retchan)
+
+	retchan1 := make(chan reqTasks3Result, 16)
+	go serv.reqTradingTask3TomeOut(stream, taskchan, retchan1)
+
+	for {
+		select {
+		case ret := <-retchan:
+			taskchan <- 3
+
+			if ret.err != nil {
+				return ret.err
+			}
+
+			if ret.isEnd {
+				return nil
+			}
+		case ret1 := <-retchan1:
+			if ret1.err != nil {
+				return ret1.err
+			}
+		}
+	}
+
+	// tasknums := 0
+	// recvresultnums := 0
+	// addr := GetPeerAddr(stream.Context())
+	// for {
+	// 	in, err := stream.Recv()
+	// 	if err == io.EOF {
+	// 		if tasknums > 0 {
+	// 			tradingdb2utils.Info("Serv.ReqTradingTask3:Recv:EOF",
+	// 				zap.Int("tasknums", tasknums),
+	// 				zap.Int("recvresultnums", recvresultnums),
+	// 				zap.String("addr", addr))
+	// 		}
+
+	// 		return nil
+	// 	}
+
+	// 	if err != nil {
+	// 		tradingdb2utils.Error("Serv.ReqTradingTask3:Recv",
+	// 			zap.Int("tasknums", tasknums),
+	// 			zap.Int("recvresultnums", recvresultnums),
+	// 			zap.String("addr", addr),
+	// 			zap.Error(err))
+
+	// 		return err
+	// 	}
+
+	// 	if in != nil {
+	// 		// tradingdb2utils.Info("Serv.ReqTradingTask3:Recv",
+	// 		// 	zap.Int("tasknums", tasknums),
+	// 		// 	zap.Int("recvresultnums", recvresultnums),
+	// 		// 	tradingdb2utils.JSON("msg", in))
+
+	// 		err := serv.checkBasicRequest(in.BasicRequest)
+	// 		if err != nil {
+	// 			tradingdb2utils.Error("Serv.ReqTradingTask3:checkToken",
+	// 				zap.String("token", in.BasicRequest.Token),
+	// 				zap.Strings("tokens", serv.Cfg.Tokens),
+	// 				zap.String("addr", addr),
+	// 				zap.Error(err))
+
+	// 			return err
+	// 		}
+
+	// 		if in.Result != nil {
+	// 			err = serv.TasksMgr.OnTaskEnd(in.Result)
+	// 			if err != nil {
+	// 				tradingdb2utils.Error("Serv.ReqTradingTask3:OnTaskEnd",
+	// 					zap.String("addr", addr),
+	// 					zap.Error(err))
+
+	// 				if err != tradingdb2task.ErrTaskFail {
+	// 					return err
+	// 				}
+	// 			} else {
+	// 				recvresultnums++
+	// 			}
+
+	// 			tradingdb2utils.Info("Serv.ReqTradingTask3:OnTaskEnd",
+	// 				zap.Int("tasknums", tasknums),
+	// 				zap.Int("recvresultnums", recvresultnums),
+	// 				zap.String("addr", addr))
+	// 		}
+
+	// 		// ctxTimeOut, err := context.WithTimeout(context.Background(), ReqTradingTask3TimeOut*time.Second)
+	// 		// if err != nil {
+	// 		// 	tradingdb2utils.Error("Serv.ReqTradingTask3:WithTimeout",
+	// 		// 		zap.Error(err))
+
+	// 		// 	return err
+	// 		// }
+	// 		// go func () {
+	// 		// 	ct := time.Now().Unix()
+	// 		// 	for {
+	// 		// 		select {
+	// 		// 		case <-ctxTimeOut.Done():
+	// 		// 			return
+	// 		// 		default:
+	// 		// 			time.Sleep(time.Second)
+
+	// 		// 			if time.Now().Unix() - ct >= ReqTradingTask3TimeOut {
+
+	// 		// 			}
+	// 		// 		}
+	// 		// 	}
+	// 		// }
+
+	// 		err = serv.TasksMgr.StartTask(func(task *tradingdb2task.Task) error {
+	// 			if task == nil {
+	// 				stream.Send(&tradingpb.ReplyTradingTask{})
+	// 			} else {
+	// 				stream.Send(&tradingpb.ReplyTradingTask{
+	// 					Params: task.Params,
+	// 				})
+
+	// 				tasknums++
+
+	// 				tradingdb2utils.Info("Serv.ReqTradingTask3:StartTask",
+	// 					zap.Int("tasknums", tasknums),
+	// 					zap.Int("recvresultnums", recvresultnums),
+	// 					zap.String("addr", addr))
+	// 			}
+
+	// 			return nil
+	// 		})
+	// 		if err != nil {
+	// 			tradingdb2utils.Error("Serv.ReqTradingTask3:StartTask",
+	// 				zap.String("addr", addr),
+	// 				zap.Error(err))
+
+	// 			return err
+	// 		}
+	// 	}
+	// }
 }
