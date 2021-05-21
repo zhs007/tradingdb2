@@ -1196,11 +1196,13 @@ func (serv *Serv) reqTradingTask3TomeOut(stream tradingpb.TradingDB2_ReqTradingT
 						zap.Int("curTaskState", curTaskState))
 				}
 
-				curTaskState = 2
+				curTaskState = 0
 			} else if ts == 3 {
-				tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
-					zap.Int("ts", ts),
-					zap.Int("curTaskState", curTaskState))
+				if curTaskState != 0 {
+					tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
+						zap.Int("ts", ts),
+						zap.Int("curTaskState", curTaskState))
+				}
 
 				return
 			} else {
