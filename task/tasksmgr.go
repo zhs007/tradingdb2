@@ -370,3 +370,61 @@ func (mgr *TasksMgr) GetLastTasks(taskGroupID int) []ShowTaskObj {
 
 	return arr
 }
+
+func (mgr *TasksMgr) ResetTaskKeyList(lst *TaskKeyList) {
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	for _, v := range lst.lst {
+		mgr.resetTaskKey(v)
+	}
+}
+
+func (mgr *TasksMgr) resetTaskKey(key string) error {
+	_, isok := mgr.mapTasks[key]
+	if !isok {
+		tradingdb2utils.Warn("TasksMgr:resetTaskKey",
+			zap.String("key", key),
+			zap.Error(ErrNoKey))
+
+		return ErrNoKey
+	}
+
+	for i, v := range mgr.lstRunning {
+		if v == key {
+			mgr.lstRunning = append(mgr.lstRunning[:i], mgr.lstRunning[i+1:]...)
+
+			if mgr.addKey(key) {
+				return nil
+			}
+
+			tradingdb2utils.Warn("TasksMgr:resetTaskKey:addKey",
+				zap.String("key", key),
+				zap.Error(ErrDuplicateKey))
+
+			return ErrDuplicateKey
+		}
+	}
+
+	if mgr.addKey(key) {
+		return nil
+	}
+
+	tradingdb2utils.Warn("TasksMgr:resetTaskKey:addKey:non-running",
+		zap.String("key", key),
+		zap.Error(ErrDuplicateKey))
+
+	return ErrDuplicateKey
+}
+
+func (mgr *TasksMgr) addKey(key string) bool {
+	for _, v := range mgr.lstKeys {
+		if v == key {
+			return false
+		}
+	}
+
+	mgr.lstKeys = append(mgr.lstKeys, key)
+
+	return true
+}

@@ -1060,6 +1060,7 @@ func (serv *Serv) reqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 	tasknums := 0
 	recvresultnums := 0
 	addr := GetPeerAddr(stream.Context())
+	lsttasks := tradingdb2task.NewTaskKeyList()
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
@@ -1078,6 +1079,8 @@ func (serv *Serv) reqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 		}
 
 		if err != nil {
+			serv.TasksMgr.ResetTaskKeyList(lsttasks)
+
 			tradingdb2utils.Error("Serv.reqTradingTask3:Recv",
 				zap.Int("tasknums", tasknums),
 				zap.Int("recvresultnums", recvresultnums),
@@ -1113,6 +1116,8 @@ func (serv *Serv) reqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 			}
 
 			if in.Result != nil {
+				lsttasks.RemoveTask(in.Result.Task)
+
 				taskchan <- 2
 
 				err = serv.TasksMgr.OnTaskEnd(in.Result)
@@ -1142,6 +1147,8 @@ func (serv *Serv) reqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				if task == nil {
 					stream.Send(&tradingpb.ReplyTradingTask{})
 				} else {
+					lsttasks.AddTask(task.Params)
+
 					taskchan <- 1
 
 					stream.Send(&tradingpb.ReplyTradingTask{
@@ -1196,11 +1203,13 @@ func (serv *Serv) reqTradingTask3TomeOut(stream tradingpb.TradingDB2_ReqTradingT
 						zap.Int("curTaskState", curTaskState))
 				}
 
-				curTaskState = 2
+				curTaskState = 0
 			} else if ts == 3 {
-				tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
-					zap.Int("ts", ts),
-					zap.Int("curTaskState", curTaskState))
+				if curTaskState != 0 {
+					tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
+						zap.Int("ts", ts),
+						zap.Int("curTaskState", curTaskState))
+				}
 
 				return
 			} else {
