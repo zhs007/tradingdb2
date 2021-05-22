@@ -295,9 +295,14 @@ func (mgr *TasksMgr) GetTaskGroups() []TaskGroup {
 		}
 
 		tg.LastTaskNums = 0
+		tg.RunningTaskNums = 0
 		for _, t := range mgr.mapTasks {
 			if t.TaskGroupID == tg.TaskGroupID {
 				tg.LastTaskNums++
+
+				if mgr.isInRunning(t.Params) {
+					tg.RunningTaskNums++
+				}
 			}
 		}
 
@@ -331,6 +336,7 @@ func (mgr *TasksMgr) addHistory(tg *TaskGroup) {
 	tg.LastTime = 0
 	tg.LastTimeStr = ""
 	tg.LastTaskNums = 0
+	tg.RunningTaskNums = 0
 
 	mgr.lstHistory = append(mgr.lstHistory, tg)
 }
@@ -427,4 +433,24 @@ func (mgr *TasksMgr) addKey(key string) bool {
 	mgr.lstKeys = append(mgr.lstKeys, key)
 
 	return true
+}
+
+func (mgr *TasksMgr) isInRunning(params *tradingpb.SimTradingParams) bool {
+	buf, err := proto.Marshal(params)
+	if err != nil {
+		tradingdb2utils.Warn("TasksMgr.isInRunning:Marshal",
+			zap.Error(err))
+
+		return false
+	}
+
+	key := hex.EncodeToString(buf)
+
+	for _, v := range mgr.lstRunning {
+		if v == key {
+			return true
+		}
+	}
+
+	return false
 }
