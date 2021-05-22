@@ -1040,6 +1040,10 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 									lstIgnore = lstlast
 								}
 							}
+						} else {
+							tradingdb2utils.Warn("Serv.SimTrading3:onEnd:no pnl",
+								zap.Bool("incache", inCache),
+								tradingdb2utils.JSON("params", req.Params))
 						}
 
 						if isSendNow {
