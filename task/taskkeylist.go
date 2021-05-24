@@ -48,3 +48,7 @@ func (lst *TaskKeyList) RemoveTask(task []byte) error {
 
 	return ErrNoKey
 }
+
+func (lst *TaskKeyList) Len() int {
+	return len(lst.lst)
+}

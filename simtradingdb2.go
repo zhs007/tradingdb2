@@ -61,8 +61,8 @@ func (db *SimTradingDB2) UpdSimTrading(ctx context.Context, params *tradingpb.Si
 	// 	return err
 	// }
 
-	tradingdb2utils.Debug("SimTradingDB2.UpdSimTrading",
-		tradingdb2utils.JSON("params", params))
+	// tradingdb2utils.Debug("SimTradingDB2.UpdSimTrading",
+	// 	tradingdb2utils.JSON("params", params))
 
 	nbuf, err := proto.Marshal(params)
 	if err != nil {
@@ -99,8 +99,8 @@ func (db *SimTradingDB2) UpdSimTrading(ctx context.Context, params *tradingpb.Si
 func (db *SimTradingDB2) GetSimTrading(ctx context.Context, params *tradingpb.SimTradingParams) (
 	*tradingpb.PNLData, error) {
 
-	tradingdb2utils.Debug("SimTradingDB2.GetSimTrading",
-		tradingdb2utils.JSON("params", params))
+	// tradingdb2utils.Debug("SimTradingDB2.GetSimTrading",
+	// 	tradingdb2utils.JSON("params", params))
 
 	nbuf, err := proto.Marshal(params)
 	if err != nil {
