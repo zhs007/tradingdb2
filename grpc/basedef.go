@@ -10,6 +10,7 @@ const WaitTradingNode2Time = 10
 const ReqTradingTask3TimeOut = 10 * 60
 
 type reqTasks3Result struct {
-	err   error
-	isEnd bool
+	err      error
+	isEnd    bool
+	taskNums int
 }

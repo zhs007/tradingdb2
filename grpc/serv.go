@@ -1072,11 +1072,15 @@ func (serv *Serv) reqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				tradingdb2utils.Info("Serv.reqTradingTask3:Recv:EOF",
 					zap.Int("tasknums", tasknums),
 					zap.Int("recvresultnums", recvresultnums),
+					zap.Int("lsttasks", lsttasks.Len()),
 					zap.String("addr", addr))
+
+				serv.TasksMgr.ResetTaskKeyList(lsttasks)
 			}
 
 			retchan <- reqTasks3Result{
-				isEnd: true,
+				isEnd:    true,
+				taskNums: tasknums,
 			}
 
 			return
@@ -1239,6 +1243,8 @@ func (serv *Serv) reqTradingTask3TomeOut(stream tradingpb.TradingDB2_ReqTradingT
 
 // ReqTradingTask3 - request trading task
 func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Server) error {
+	addr := GetPeerAddr(stream.Context())
+
 	taskchan := make(chan int, 16)
 
 	retchan := make(chan reqTasks3Result, 16)
@@ -1253,14 +1259,28 @@ func (serv *Serv) ReqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 			taskchan <- 3
 
 			if ret.err != nil {
+				tradingdb2utils.Error("Serv.ReqTradingTask3:retchan",
+					zap.String("addr", addr),
+					zap.Error(ret.err))
+
 				return ret.err
 			}
 
 			if ret.isEnd {
+				if ret.taskNums > 0 {
+					tradingdb2utils.Info("Serv.ReqTradingTask3:retchan",
+						zap.String("addr", addr),
+						zap.Int("tasknums", ret.taskNums))
+				}
+
 				return nil
 			}
 		case ret1 := <-retchan1:
 			if ret1.err != nil {
+				tradingdb2utils.Error("Serv.ReqTradingTask3:retchan1",
+					zap.String("addr", addr),
+					zap.Error(ret1.err))
+
 				return ret1.err
 			}
 		}
