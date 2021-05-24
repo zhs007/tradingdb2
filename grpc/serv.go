@@ -863,7 +863,7 @@ func (serv *Serv) simTrading3(ctx context.Context, taskGroupID int, req *trading
 		}
 
 		if pnl != nil {
-			tradingdb2utils.Debug("Serv.simTrading3:Cached1")
+			// tradingdb2utils.Debug("Serv.simTrading3:Cached1")
 
 			onEnd(req, &tradingpb.ReplySimTrading{
 				Pnl: []*tradingpb.PNLData{
@@ -1078,6 +1078,8 @@ func (serv *Serv) reqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 				serv.TasksMgr.ResetTaskKeyList(lsttasks)
 			}
 
+			// stream.SendAndClose(&tradingpb.ReplyTradingTask{})
+
 			retchan <- reqTasks3Result{
 				isEnd:    true,
 				taskNums: tasknums,
@@ -1190,39 +1192,52 @@ func (serv *Serv) reqTradingTask3(stream tradingpb.TradingDB2_ReqTradingTask3Ser
 
 // reqTradingTask3TomeOut - request trading task
 func (serv *Serv) reqTradingTask3TomeOut(stream tradingpb.TradingDB2_ReqTradingTask3Server, taskchan chan int, retchan chan reqTasks3Result) {
+	addr := GetPeerAddr(stream.Context())
+
 	curTaskState := 0
 	ct := time.Now().Unix()
+	tasknums := 0
 	for {
 		select {
 		case ts := <-taskchan:
 			if ts == 1 {
-				if curTaskState != 0 {
+				tasknums++
+
+				if curTaskState%2 != 0 {
 					tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
 						zap.Int("ts", ts),
+						zap.String("addr", addr),
 						zap.Int("curTaskState", curTaskState))
 				}
 
-				curTaskState = 1
-				ct = time.Now().Unix()
+				if curTaskState == 0 {
+					ct = time.Now().Unix()
+				}
+
+				curTaskState++
 			} else if ts == 2 {
-				if curTaskState != 1 {
+				if curTaskState%2 != 1 {
 					tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
 						zap.Int("ts", ts),
+						zap.String("addr", addr),
 						zap.Int("curTaskState", curTaskState))
 				}
 
-				curTaskState = 0
+				curTaskState--
 			} else if ts == 3 {
-				if curTaskState != 0 {
+				if tasknums > 0 {
 					tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
 						zap.Int("ts", ts),
-						zap.Int("curTaskState", curTaskState))
+						zap.String("addr", addr),
+						zap.Int("curTaskState", curTaskState),
+						zap.Int("tasknums", tasknums))
 				}
 
 				return
 			} else {
 				tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:taskchan",
 					zap.Int("ts", ts),
+					zap.String("addr", addr),
 					zap.Int("curTaskState", curTaskState))
 			}
 		default:
@@ -1230,6 +1245,10 @@ func (serv *Serv) reqTradingTask3TomeOut(stream tradingpb.TradingDB2_ReqTradingT
 
 			if curTaskState == 1 {
 				if time.Now().Unix()-ct >= ReqTradingTask3TimeOut {
+					tradingdb2utils.Warn("Serv.reqTradingTask3TomeOut:ReqTradingTask3TimeOut",
+						zap.String("addr", addr),
+						zap.Int("curTaskState", curTaskState))
+
 					retchan <- reqTasks3Result{
 						err: ErrTimeOut,
 					}
