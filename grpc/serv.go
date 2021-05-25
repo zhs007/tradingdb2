@@ -973,6 +973,8 @@ func (serv *Serv) SimTrading3(stream tradingpb.TradingDB2_SimTrading3Server) err
 			tradingdb2utils.Error("Serv.SimTrading3",
 				zap.Error(err))
 
+			serv.TasksMgr.WaitTaskGroupFinished(curTaskGroupID)
+
 			return err
 		}
 
